@@ -13,7 +13,7 @@ dependencies:
     sdk: flutter
 
   # Backend & Auth (Developer 3)
-  supabase_flutter: ^2.6.0 # Double check latest version on pub.dev
+  supabase_flutter: ^2.12.4 # Double check latest version on pub.dev
 
   # State Management (Developer 1 & 3)
   flutter_riverpod: ^2.5.1
