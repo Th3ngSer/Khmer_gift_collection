@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../shared/widgets/main_navigation_scaffold.dart';
+import '../../features/home/screens/splash_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -21,8 +22,13 @@ class PlaceholderScreen extends StatelessWidget {
 }
 
 final goRouter = GoRouter(
-  initialLocation: '/home', 
+  initialLocation: '/', 
   routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const SplashScreen(),
+    ),
+
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return MainNavigationScaffold(navigationShell: navigationShell);
