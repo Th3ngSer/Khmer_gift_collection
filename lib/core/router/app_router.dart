@@ -4,6 +4,8 @@ import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/quiz/screens/quiz_screen.dart';
+import '../../features/quiz/screens/quiz_results_screen.dart';
+import '../../features/product/screens/product_detail_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -34,6 +36,19 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/quiz',
       builder: (context, state) => const QuizScreen(),
+    ),
+
+    GoRoute(
+      path: '/quiz/results',
+      builder: (context, state) => const QuizResultsScreen(),
+    ),
+
+    GoRoute(
+      path: '/products/:id',
+      builder: (context, state) {
+        final productId = state.pathParameters['id']!;
+        return ProductDetailScreen(productId: productId);
+      },
     ),
 
     StatefulShellRoute.indexedStack(
