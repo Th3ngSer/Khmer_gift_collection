@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
 import '../../features/home/screens/home_screen.dart';
+import '../../features/quiz/screens/quiz_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -28,6 +29,11 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/',
       builder: (context, state) => const SplashScreen(),
+    ),
+
+    GoRoute(
+      path: '/quiz',
+      builder: (context, state) => const QuizScreen(),
     ),
 
     StatefulShellRoute.indexedStack(

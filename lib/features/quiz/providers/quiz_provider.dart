@@ -1,18 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../home/providers/home_provider.dart'; // To access the inventory
+import '../../home/providers/home_provider.dart';
 
-// --- 1. Load the Questions ---
 final quizQuestionsProvider = FutureProvider<List<dynamic>>((ref) async {
   final String response = await rootBundle.loadString('assets/mock/quiz_questions.json');
   return await json.decode(response);
 });
 
-// --- 2. Track User Answers ---
-// This acts like your Zustand store, holding a map of {questionId: selectedOptionId}
-class QuizAnswersNotifier extends StateNotifier<Map<String, String>> {
-  QuizAnswersNotifier() : super({});
+class QuizAnswersNotifier extends Notifier<Map<String, String>> {
+  
+  @override
+  Map<String, String> build() {
+    return {};
+  }
 
   void setAnswer(String questionId, String optionId) {
     state = {...state, questionId: optionId};
@@ -23,18 +24,15 @@ class QuizAnswersNotifier extends StateNotifier<Map<String, String>> {
   }
 }
 
-final quizAnswersProvider = StateNotifierProvider<QuizAnswersNotifier, Map<String, String>>((ref) {
+final quizAnswersProvider = NotifierProvider<QuizAnswersNotifier, Map<String, String>>(() {
   return QuizAnswersNotifier();
 });
 
-// --- 3. The Recommendation Algorithm ---
-// This perfectly mirrors your React `quiz.results.tsx` logic!
 final quizResultsProvider = Provider<Map<String, List<dynamic>>>((ref) {
   final answers = ref.watch(quizAnswersProvider);
   final questionsAsync = ref.watch(quizQuestionsProvider);
   final homeDataAsync = ref.watch(homeFeedProvider);
 
-  // If data isn't loaded yet, return empty arrays to prevent crashes
   if (questionsAsync.value == null || homeDataAsync.value == null) {
     return {'top': [], 'rest': []};
   }
@@ -42,7 +40,6 @@ final quizResultsProvider = Provider<Map<String, List<dynamic>>>((ref) {
   final questions = questionsAsync.value!;
   final items = homeDataAsync.value!.items;
 
-  // A. Extract desired tags based on user's answers
   final Set<String> desiredTags = {};
   for (final q in questions) {
     final answerId = answers[q['id']];

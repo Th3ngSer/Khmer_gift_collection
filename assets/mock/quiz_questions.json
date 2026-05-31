@@ -1,0 +1,46 @@
+[
+  {
+    "id": "q_recipient",
+    "prompt": "Who is the gift for?",
+    "subtitle": "We'll tailor the recommendations.",
+    "options": [
+      { "id": "her", "label": "For her", "tags": ["her"] },
+      { "id": "him", "label": "For him", "tags": ["him"] },
+      { "id": "couple", "label": "A couple", "tags": ["her", "him", "wedding"] },
+      { "id": "foodie", "label": "A foodie friend", "tags": ["foodie"] }
+    ]
+  },
+  {
+    "id": "q_occasion",
+    "prompt": "What's the occasion?",
+    "subtitle": "Helps us match the gesture.",
+    "options": [
+      { "id": "anniversary", "label": "Anniversary", "tags": ["anniversary", "elegant"] },
+      { "id": "wedding", "label": "Wedding", "tags": ["wedding", "elegant"] },
+      { "id": "housewarming", "label": "Housewarming", "tags": ["housewarming"] },
+      { "id": "thank_you", "label": "Just because", "tags": ["everyday", "gift-under-50"] }
+    ]
+  },
+  {
+    "id": "q_budget",
+    "prompt": "What's the budget?",
+    "subtitle": "All in USD.",
+    "options": [
+      { "id": "under_50", "label": "Under $50", "tags": ["gift-under-50"] },
+      { "id": "under_100", "label": "$50 – $100", "tags": ["gift-under-100"] },
+      { "id": "luxury", "label": "$100 – $200", "tags": ["luxury"] },
+      { "id": "no_limit", "label": "No limit", "tags": ["luxury", "one-of-a-kind"] }
+    ]
+  },
+  {
+    "id": "q_style",
+    "prompt": "Their style?",
+    "subtitle": "Pick the closest.",
+    "options": [
+      { "id": "traditional", "label": "Traditional", "tags": ["traditional"] },
+      { "id": "modern", "label": "Modern", "tags": ["modern", "minimal"] },
+      { "id": "elegant", "label": "Elegant", "tags": ["elegant", "luxury"] },
+      { "id": "natural", "label": "Natural & earthy", "tags": ["natural", "everyday"] }
+    ]
+  }
+]
