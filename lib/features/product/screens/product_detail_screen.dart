@@ -30,20 +30,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         loading: () => const Center(child: CircularProgressIndicator(color: goldColor)),
         error: (err, stack) => Center(child: Text('Error: $err')),
         data: (data) {
-          // 1. Find the specific product
-          final item = data.items.firstWhere(
-            (i) => i['id'].toString() == widget.productId,
-            orElse: () => null,
-          );
+          final item = data.items
+              .where((i) => i['id'].toString() == widget.productId)
+              .firstOrNull;
 
           if (item == null) {
             return const Center(child: Text('Product not found.'));
           }
 
-          // 2. Find a related artisan (Mocking the relationship for the demo)
           final artisan = data.artisans.isNotEmpty ? data.artisans.first : null;
           final rating = item['rating'] ?? 4.8;
-          final reviewsCount = 24; // Mocked review count
+          final reviewsCount = 24; 
           final tags = item['tags'] != null ? List<String>.from(item['tags']) : ['Elegant', 'Handmade'];
 
           return CustomScrollView(
