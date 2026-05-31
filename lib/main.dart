@@ -13,10 +13,10 @@ Future<void> main() async {
   );
 
   runApp(
-  const ProviderScope(
-    child: KhmerGiftApp(),
-  ),
-);
+    const ProviderScope(
+      child: KhmerGiftApp(),
+    ),
+  );
 }
 
 class KhmerGiftApp extends StatelessWidget {
@@ -68,7 +68,7 @@ class _TestConnectionScreenState extends State<TestConnectionScreen> {
         title: const Text('Backend Connection Test'),
       ),
       body: _products.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
           : ListView.builder(
               itemCount: _products.length,
               itemBuilder: (context, index) {
