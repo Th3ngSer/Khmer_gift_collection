@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router/app_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,7 +12,11 @@ Future<void> main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpcXJhZ2hremZqc2djeWZncGRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTAwMjgsImV4cCI6MjA5NTYyNjAyOH0.sJJW-x5mOC0OII90gClR7zkzBvMnFp8GesTWr867QSE', // Replace with your anon public key
   );
 
-  runApp(const KhmerGiftApp());
+  runApp(
+  const ProviderScope(
+    child: KhmerGiftApp(),
+  ),
+);
 }
 
 class KhmerGiftApp extends StatelessWidget {
