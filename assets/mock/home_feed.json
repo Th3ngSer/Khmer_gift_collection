@@ -6,7 +6,7 @@
       "title": "The Songkran Gift Set",
       "subtitle": "Curated essentials for the festive season.",
       "cta": "Shop Collection",
-      "image": "https://images.unsplash.com/photo-1518381488102-126ad621f375?w=800&q=80",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzeEqUnnuR62JZ8GFvqnkymYSwm_h16DW-1A&s",
       "linkCollectionId": "c1"
     }
   ],
@@ -15,14 +15,14 @@
       "id": "c1",
       "name": "Wedding Gifts",
       "subtitle": "Elegant & Traditional",
-      "cover": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=80",
+      "cover": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyqsEWS9VGCUdqT1-Btcd9cE2-7ZvU-lHmYg&s",
       "featured": true
     },
     {
       "id": "c2",
       "name": "Corporate Gifting",
       "subtitle": "Premium Craftsmanship",
-      "cover": "https://images.unsplash.com/photo-1499744632587-7798360fa204?w=800&q=80",
+      "cover": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFfTj_H7Q4s2hJ1BM97bUb1IXHjfAJ0zg9-g&s",
       "featured": true
     }
   ]

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
+import '../../features/home/screens/home_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -39,7 +40,7 @@ final goRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/home',
-              builder: (context, state) => const PlaceholderScreen(title: 'Home'),
+              builder: (context, state) => const HomeScreen(),
             ),
           ],
         ),

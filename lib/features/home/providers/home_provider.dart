@@ -21,21 +21,31 @@ class HomeFeedData {
 // 2. The Hybrid Provider
 final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
   
-  // A. Load static UI data (Promotions & Collections) from local JSON
   final String jsonString = await rootBundle.loadString('assets/mock/home_feed.json');
   final localData = json.decode(jsonString);
 
-  // B. Load dynamic data (Products & Artisans) live from Supabase
   final supabase = Supabase.instance.client;
-  
-  // Because we configured RLS earlier, this safely fetches the public data!
-  final artisansData = await supabase.from('artisans').select();
-  final productsData = await supabase.from('products').select();
+  final rawArtisans = await supabase.from('artisans').select();
+  final rawProducts = await supabase.from('products').select();
 
-  // C. Combine and return everything to the UI
+  const fallbackAvatar = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQX1CuF5ByhjpYZMllwvBG75hNLw58TW7Dp6Q&s';
+  const fallbackCover = 'https://mlo1wbhvgmgt.i.optimole.com/w:1024/h:576/q:mauto/g:sm/f:best/https://pethero.co.za/wp-content/uploads/2026/02/Indoor-Cats-Blog-Banner.png';
+  const fallbackProduct = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiugxgmLGqUu6bXJiwgMidRtxyKN9zG_ujGg&s';
+
+  final safeArtisans = rawArtisans.map((a) => {
+    ...a,
+    'avatar': a['avatar'] ?? fallbackAvatar,
+    'cover': a['cover'] ?? fallbackCover,
+  }).toList();
+
+  final safeProducts = rawProducts.map((p) => {
+    ...p,
+    'cover': p['cover'] ?? fallbackProduct,
+  }).toList();
+
   return HomeFeedData(
-    artisans: artisansData,
-    items: productsData,
+    artisans: safeArtisans,
+    items: safeProducts,
     promotions: localData['promotions'] ?? [],
     collections: localData['collections'] ?? [],
   );

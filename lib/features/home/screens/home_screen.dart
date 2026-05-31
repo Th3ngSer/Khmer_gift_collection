@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/home_provider.dart';
 import '../widgets/story_viewer.dart';
+import '../../../shared/widgets/section_header.dart';
+import '../../../shared/widgets/product_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -97,7 +99,7 @@ class HomeScreen extends ConsumerWidget {
                     _buildCategories(categories),
 
                     // 5. Featured Collections Carousel
-                    _SectionHeader(title: 'Featured collections', subtitle: 'Curated this season'),
+                    SectionHeader(title: 'Featured collections', subtitle: 'Curated this season'),
                     _buildCollectionsCarousel(data.collections),
                   ],
                 ),
@@ -105,7 +107,7 @@ class HomeScreen extends ConsumerWidget {
 
               // 6. Trending Grid
               const SliverToBoxAdapter(
-                child: _SectionHeader(title: 'Trending now', subtitle: 'Loved this week'),
+                child: SectionHeader(title: 'Trending now', subtitle: 'Loved this week'),
               ),
               _buildProductGrid(trending),
 
@@ -114,7 +116,7 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 7. Artisan Spotlight
-                    _SectionHeader(title: 'Meet the makers', subtitle: 'Stories from the workshop'),
+                    SectionHeader(title: 'Meet the makers', subtitle: 'Stories from the workshop'),
                     _buildArtisanCarousel(data.artisans),
 
                     // 8. Promo Banner
@@ -125,7 +127,7 @@ class HomeScreen extends ConsumerWidget {
 
               // 9. Recommended Grid
               const SliverToBoxAdapter(
-                child: _SectionHeader(title: 'Recommended for you'),
+                child: SectionHeader(title: 'Recommended for you'),
               ),
               _buildProductGrid(recommended),
 
@@ -486,77 +488,14 @@ class HomeScreen extends ConsumerWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 16,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.65, // Adjusts the height of the card
+          childAspectRatio: 0.60, 
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
-            final item = items[index];
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      image: DecorationImage(
-                        image: NetworkImage(item['cover'] ?? ''),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  item['name'] ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '\$${item['price']}',
-                  style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
-                ),
-              ],
-            );
+            return ProductCard(item: items[index]); 
           },
           childCount: items.length,
         ),
-      ),
-    );
-  }
-}
-
-// --- Reusable Section Header ---
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-
-  const _SectionHeader({required this.title, this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              if (subtitle != null)
-                Text(
-                  subtitle!,
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-                ),
-            ],
-          ),
-          const Text('See all', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-        ],
       ),
     );
   }
