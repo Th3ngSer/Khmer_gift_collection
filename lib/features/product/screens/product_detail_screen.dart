@@ -176,7 +176,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         ),
                         const SizedBox(height: 12),
                         GestureDetector(
-                          onTap: () => context.push('/artisans/${artisan['id']}'),
+                          onTap: () => context.push('/artisans/${artisan['id']}', extra: artisan),
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(

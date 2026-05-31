@@ -6,6 +6,10 @@ import '../../features/home/screens/home_screen.dart';
 import '../../features/quiz/screens/quiz_screen.dart';
 import '../../features/quiz/screens/quiz_results_screen.dart';
 import '../../features/product/screens/product_detail_screen.dart';
+import '../../features/chat_reviews/presentation/chat_room_screen.dart';
+import '../../features/chat_reviews/presentation/chat_list_screen.dart';
+import '../../features/profile/screens/artisan_profile_screen.dart';
+import '../../features/profile/screens/user_profile_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -51,6 +55,28 @@ final goRouter = GoRouter(
       },
     ),
 
+    GoRoute(
+      path: '/artisans/:id',
+      builder: (context, state) {
+        // We pass the artisan data map through the 'extra' parameter
+        final artisan = state.extra as Map<String, dynamic>;
+        return ArtisanProfileScreen(artisanData: artisan);
+      },
+    ),
+
+    GoRoute(
+      path: '/chat-room/:roomId',
+      builder: (context, state) {
+        final roomId = state.pathParameters['roomId']!;
+        final extras = state.extra as Map<String, dynamic>;
+        return ChatRoomScreen(
+          roomId: roomId,
+          currentUserId: extras['currentUserId'] as String,
+          artisanName: extras['artisanName'] as String,
+        );
+      },
+    ),
+
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return MainNavigationScaffold(navigationShell: navigationShell);
@@ -88,7 +114,7 @@ final goRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/chat',
-              builder: (context, state) => const PlaceholderScreen(title: 'Chat Messages'),
+              builder: (context, state) => const ChatListScreen(),
             ),
           ],
         ),
@@ -97,7 +123,7 @@ final goRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/profile',
-              builder: (context, state) => const PlaceholderScreen(title: 'Your Profile'),
+              builder: (context, state) => const UserProfileScreen(),
             ),
           ],
         ),

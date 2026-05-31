@@ -366,53 +366,56 @@ class HomeScreen extends ConsumerWidget {
         itemCount: artisans.length,
         itemBuilder: (context, index) {
           final a = artisans[index];
-          return Container(
-            width: 160,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              image: DecorationImage(
-                image: NetworkImage(a['cover']),
-                fit: BoxFit.cover,
-              ),
-            ),
+          return GestureDetector(
+            onTap: () => context.push('/artisans/${a['id']}', extra: a),
             child: Container(
+              width: 160,
+              margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.center,
-                  colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+                image: DecorationImage(
+                  image: NetworkImage(a['cover']),
+                  fit: BoxFit.cover,
                 ),
               ),
-              padding: const EdgeInsets.all(12),
-              alignment: Alignment.bottomLeft,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    (a['region'] ?? '').toString().toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 9,
-                      letterSpacing: 2.0,
-                      color: Color(0xFFD4AF37),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.center,
+                    colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+                  ),
+                ),
+                padding: const EdgeInsets.all(12),
+                alignment: Alignment.bottomLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (a['region'] ?? '').toString().toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 2.0,
+                        color: Color(0xFFD4AF37),
+                      ),
                     ),
-                  ),
-                  Text(
-                    a['name'],
-                    style: const TextStyle(
-                      fontFamily: 'serif',
-                      fontSize: 16,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                    Text(
+                      a['name'],
+                      style: const TextStyle(
+                        fontFamily: 'serif',
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  Text(
-                    a['craft'] ?? '',
-                    style: const TextStyle(fontSize: 11, color: Colors.white70),
-                  ),
-                ],
+                    Text(
+                      a['craft'] ?? '',
+                      style: const TextStyle(fontSize: 11, color: Colors.white70),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
