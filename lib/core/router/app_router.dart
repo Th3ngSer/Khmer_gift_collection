@@ -9,7 +9,7 @@ import '../../features/quiz/screens/quiz_results_screen.dart';
 import '../../features/product/screens/product_detail_screen.dart';
 import '../../features/chat_reviews/presentation/chat_room_screen.dart';
 import '../../features/chat_reviews/presentation/chat_list_screen.dart';
-import '../../features/profile/screens/artisan_profile_screen.dart';
+import '../../features/artisan/screens/artisan_profile_screen.dart';
 import '../../features/profile/screens/user_profile_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {

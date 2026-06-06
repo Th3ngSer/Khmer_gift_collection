@@ -1,4 +1,3 @@
-// lib/features/quiz/screens/quiz_results_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +5,7 @@ import '../providers/quiz_provider.dart';
 import '../widgets/top_match_card.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../shared/widgets/section_header.dart';
-import '../../../shared/widgets/khmer_divider.dart'; // Added Khmer Divider
+import '../../../shared/widgets/khmer_divider.dart'; 
 
 class QuizResultsScreen extends ConsumerWidget {
   const QuizResultsScreen({super.key});
