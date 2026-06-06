@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// 1. Define the Data Model
 class HomeFeedData {
   final List<dynamic> artisans;
   final List<dynamic> promotions;
@@ -29,7 +28,7 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
   final rawArtisans = await supabase.from('artisans').select();
   final rawProducts = await supabase
       .from('products')
-      .select('*, product_images(image_url)');
+      .select('*, product_images!product_images_product_id_fkey(image_url)');
 
   const fallbackAvatar =
       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQX1CuF5ByhjpYZMllwvBG75hNLw58TW7Dp6Q&s';
