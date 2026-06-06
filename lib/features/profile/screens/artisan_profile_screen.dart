@@ -11,12 +11,6 @@ class ArtisanProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Warm Earth Tones & Gold Highlights
     const goldColor = Color(0xFFD4AF37);
-    const clayColor = Color(0xFF8B4513); // Clay Terracotta fallback
-    
-    // Attempt to use theme colors, with fallbacks to the "Khmer Heritage" palette
-    final themeColor = Theme.of(context).primaryColor == Colors.deepPurple 
-        ? clayColor 
-        : Theme.of(context).primaryColor;
 
     return Scaffold(
       extendBodyBehindAppBar: true,

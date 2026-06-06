@@ -5,6 +5,8 @@ import '../providers/home_provider.dart';
 import '../widgets/story_viewer.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../../../core/providers/locale_provider.dart';
+import '../../../core/constants/translations.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -12,7 +14,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeData = ref.watch(homeFeedProvider);
+    final locale = ref.watch(localeProvider).languageCode;
     const goldColor = Color(0xFFD4AF37);
+    
+    String t(String key) => Translations.translate(key, locale);
 
     return Scaffold(
       body: homeData.when(
@@ -54,17 +59,17 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'សួស្តី · WELCOME',
-                      style: TextStyle(
+                      locale == 'km' ? 'សួស្តី' : 'សួស្តី · ${t('welcome_greeting')}',
+                      style: const TextStyle(
                         fontSize: 10,
                         letterSpacing: 2.0,
                         color: goldColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Text(
-                      'Gift & Souvenir',
-                      style: TextStyle(
+                    Text(
+                      t('gift_and_souvenir'),
+                      style: const TextStyle(
                         fontFamily: 'serif',
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
@@ -93,21 +98,27 @@ class HomeScreen extends ConsumerWidget {
                     _buildStoryRail(context, stories),
 
                     // 3. Gift Finder CTA
-                    _buildGiftFinderCTA(context),
+                    _buildGiftFinderCTA(context, t),
 
                     // 4. Categories Chips
                     _buildCategories(categories),
 
                     // 5. Featured Collections Carousel
-                    SectionHeader(title: 'Featured collections', subtitle: 'Curated this season'),
+                    SectionHeader(
+                      title: t('featured_collections'), 
+                      subtitle: t('curated_season'),
+                    ),
                     _buildCollectionsCarousel(data.collections),
                   ],
                 ),
               ),
 
               // 6. Trending Grid
-              const SliverToBoxAdapter(
-                child: SectionHeader(title: 'Trending now', subtitle: 'Loved this week'),
+              SliverToBoxAdapter(
+                child: SectionHeader(
+                  title: t('trending_now'), 
+                  subtitle: t('loved_week'),
+                ),
               ),
               _buildProductGrid(trending),
 
@@ -116,7 +127,10 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 7. Artisan Spotlight
-                    SectionHeader(title: 'Meet the makers', subtitle: 'Stories from the workshop'),
+                    SectionHeader(
+                      title: t('meet_makers'), 
+                      subtitle: t('stories_workshop'),
+                    ),
                     _buildArtisanCarousel(data.artisans),
 
                     // 8. Promo Banner
@@ -126,8 +140,8 @@ class HomeScreen extends ConsumerWidget {
               ),
 
               // 9. Recommended Grid
-              const SliverToBoxAdapter(
-                child: SectionHeader(title: 'Recommended for you'),
+              SliverToBoxAdapter(
+                child: SectionHeader(title: t('recommended_for_you')),
               ),
               _buildProductGrid(recommended),
 
@@ -140,7 +154,7 @@ class HomeScreen extends ConsumerWidget {
                       Divider(color: goldColor.withOpacity(0.3), indent: 140, endIndent: 140),
                       const SizedBox(height: 12),
                       Text(
-                        'HANDMADE IN CAMBODIA',
+                        t('handmade_cambodia'),
                         style: TextStyle(
                           fontSize: 10,
                           letterSpacing: 3.0,
@@ -171,7 +185,6 @@ class HomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(right: 16),
             child: GestureDetector(
               onTap: () {
-                // Push the StoryViewer as a full-screen overlay
                 Navigator.of(context).push(
                   PageRouteBuilder(
                     pageBuilder: (context, animation, secondaryAnimation) => 
@@ -215,7 +228,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGiftFinderCTA(BuildContext context) {
+  Widget _buildGiftFinderCTA(BuildContext context, String Function(String) t) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: InkWell(
@@ -247,13 +260,13 @@ class HomeScreen extends ConsumerWidget {
                 child: const Icon(Icons.auto_awesome, color: Color(0xFF2A1508)),
               ),
               const SizedBox(width: 16),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Find the perfect gift',
-                      style: TextStyle(
+                      t('find_perfect_gift'),
+                      style: const TextStyle(
                         fontFamily: 'serif',
                         fontSize: 18,
                         color: Colors.white,
@@ -261,8 +274,8 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'A 4-step quiz, curated just for them.',
-                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                      t('quiz_sub'),
+                      style: const TextStyle(fontSize: 12, color: Colors.white70),
                     ),
                   ],
                 ),

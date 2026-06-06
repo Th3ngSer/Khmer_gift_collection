@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../home/providers/home_provider.dart';
 import '../../../shared/widgets/khmer_divider.dart';
+import '../../../core/providers/locale_provider.dart';
+import '../../../core/constants/translations.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -14,17 +16,19 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
-  bool _isFav = false; // Local state for the heart toggle demo
+  bool _isFav = false;
 
   @override
   Widget build(BuildContext context) {
     final homeDataAsync = ref.watch(homeFeedProvider);
+    final locale = ref.watch(localeProvider).languageCode;
     const goldColor = Color(0xFFD4AF37);
+    
+    String t(String key) => Translations.translate(key, locale);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // The Sticky Bottom CTA Bar
-      bottomNavigationBar: _buildBottomCTA(context, goldColor),
+      bottomNavigationBar: _buildBottomCTA(context, goldColor, t),
       
       body: homeDataAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: goldColor)),
@@ -35,17 +39,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               .firstOrNull;
 
           if (item == null) {
-            return const Center(child: Text('Product not found.'));
+            return Center(child: Text(t('product_not_found')));
           }
 
           final artisan = data.artisans.isNotEmpty ? data.artisans.first : null;
           final rating = item['rating'] ?? 4.8;
           final reviewsCount = 24; 
-          final tags = item['tags'] != null ? List<String>.from(item['tags']) : ['Elegant', 'Handmade'];
 
           return CustomScrollView(
             slivers: [
-              // 3. The Hero Image & Transparent Header
               SliverAppBar(
                 expandedHeight: 400,
                 pinned: true,
@@ -79,7 +81,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     fit: StackFit.expand,
                     children: [
                       Image.network(item['cover'] ?? '', fit: BoxFit.cover),
-                      // Subtle gradient to make the white header icons pop
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -94,14 +95,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 ),
               ),
 
-              // 4. Product Info & Content
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Category & Rating Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -118,7 +117,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                ' ($reviewsCount reviews)',
+                                ' ($reviewsCount ${t('reviews')})',
                                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 12),
                               ),
                             ],
@@ -127,7 +126,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ),
                       const SizedBox(height: 8),
 
-                      // Title & Price
                       Text(
                         item['name'] ?? '',
                         style: const TextStyle(fontFamily: 'serif', fontSize: 28, fontWeight: FontWeight.bold, height: 1.1),
@@ -142,37 +140,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const Center(child: KhmerDivider(width: 120)),
                       const SizedBox(height: 24),
 
-                      // The Story
-                      const Text(
-                        'The story',
-                        style: TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
+                      Text(
+                        t('the_story'),
+                        style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        item['story'] ?? 'Crafted with care and precision, this piece embodies the rich cultural heritage and generational techniques of local artisans. Perfect for adding a touch of elegance to any setting.',
+                        item['story'] ?? 'Crafted with care and precision, this piece embodies the rich cultural heritage and generational techniques of local artisans.',
                         style: TextStyle(fontSize: 15, height: 1.6, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8)),
                       ),
-                      const SizedBox(height: 20),
-
-                      // Tags
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: tags.map((tag) => Chip(
-                          label: Text(tag, style: const TextStyle(fontSize: 12)),
-                          backgroundColor: Theme.of(context).cardColor,
-                          side: BorderSide(color: Theme.of(context).dividerColor),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        )).toList(),
-                      ),
-                      
                       const SizedBox(height: 32),
 
-                      // Maker / Artisan Card
                       if (artisan != null) ...[
-                        const Text(
-                          'Meet the maker',
-                          style: TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
+                        Text(
+                          t('meet_the_maker'),
+                          style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 12),
                         GestureDetector(
@@ -224,8 +206,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
-  // --- Sticky Bottom Call-to-Action Bar ---
-  Widget _buildBottomCTA(BuildContext context, Color goldColor) {
+  Widget _buildBottomCTA(BuildContext context, Color goldColor, String Function(String) t) {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
       decoration: BoxDecoration(
@@ -234,7 +215,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       ),
       child: Row(
         children: [
-          // Favorite Heart Button
           InkWell(
             onTap: () => setState(() => _isFav = !_isFav),
             borderRadius: BorderRadius.circular(16),
@@ -253,24 +233,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          // Order / Buy Button
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                // Future Phase: Route to the Booking / Order Flow
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Navigating to Order Flow...')),
+                  SnackBar(content: Text(t('nav_order_flow'))),
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2A1508), // Deep Earth Tone
+                backgroundColor: const Color(0xFF2A1508),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text(
-                'Order Now',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: Text(
+                t('order_now'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
