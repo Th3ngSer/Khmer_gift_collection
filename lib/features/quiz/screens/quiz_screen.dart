@@ -111,7 +111,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                           // Personalized Badge
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            margin: const EdgeInsets.bottom(8),
+                            margin: const EdgeInsets.only(bottom: 8),
                             decoration: BoxDecoration(
                               color: primaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
