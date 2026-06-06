@@ -41,11 +41,13 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
       .map(
         (a) => {
           ...a,
-          'avatar': a['profile_photo_url'] ?? fallbackAvatar, 
-          'cover': a['cover_photo_url'] ?? a['profile_photo_url'] ?? fallbackCover,
-          'story': a['heritage_story'] ?? '', 
-          'craft':
-              'Master Artisan', 
+          'avatar': a['profile_photo_url'] ?? fallbackAvatar,
+          'cover':
+              a['cover_photo_url'] ?? a['profile_photo_url'] ?? fallbackCover,
+          'story_post_image':
+              a['latest_story_url'] ?? a['cover_photo_url'] ?? fallbackCover,
+          'story': a['heritage_story'] ?? '',
+          'craft': 'Master Artisan',
         },
       )
       .toList();
@@ -56,10 +58,7 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
         ? images.first['image_url']
         : fallbackProduct;
 
-    return {
-      ...p,
-      'cover': imageUrl, 
-    };
+    return {...p, 'cover': imageUrl};
   }).toList();
 
   return HomeFeedData(

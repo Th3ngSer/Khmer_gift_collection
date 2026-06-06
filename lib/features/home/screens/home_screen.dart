@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
           final recommended = data.items.reversed.take(4).toList();
           final stories = [
             ...data.artisans.map((a) => {
-              'image': a['cover'] ?? '',
+              'image': a['story_post_image'],
               'title': a['name'] ?? '',
               'subtitle': '${a['craft']} · ${a['region']}',
               'caption': a['story'] ?? '',
@@ -41,7 +41,7 @@ class HomeScreen extends ConsumerWidget {
               'caption': p['cta'] ?? '',
               'avatar': p['image'] ?? '',
               'label': p['badge'] ?? '',
-              'linkCollectionId': p['linkCollectionId'], // Added for routing
+              'linkCollectionId': p['linkCollectionId'], 
             }),
           ];
 
@@ -459,11 +459,7 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildPromoBanner(BuildContext context, dynamic promo) {
     return GestureDetector(
-      onTap: () {
-        if (promo['linkCollectionId'] != null) {
-          context.push('/collections/${promo['linkCollectionId']}');
-        }
-      },
+      onTap: () => context.push('/collections/${promo['linkCollectionId']}'),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         height: 160,

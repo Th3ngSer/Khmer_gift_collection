@@ -11,6 +11,7 @@ import '../../features/chat_reviews/presentation/chat_room_screen.dart';
 import '../../features/chat_reviews/presentation/chat_list_screen.dart';
 import '../../features/artisan/screens/artisan_profile_screen.dart';
 import '../../features/profile/screens/user_profile_screen.dart';
+import '../../features/collection/screens/collection_detail_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -31,17 +32,11 @@ class PlaceholderScreen extends StatelessWidget {
 }
 
 final goRouter = GoRouter(
-  initialLocation: '/', 
+  initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
 
-    GoRoute(
-      path: '/quiz',
-      builder: (context, state) => const QuizScreen(),
-    ),
+    GoRoute(path: '/quiz', builder: (context, state) => const QuizScreen()),
 
     GoRoute(
       path: '/quiz/results',
@@ -61,6 +56,14 @@ final goRouter = GoRouter(
       builder: (context, state) {
         final id = state.pathParameters['id']!;
         return ArtisanProfileScreen(artisanId: id);
+      },
+    ),
+
+    GoRoute(
+      path: '/collections/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return CollectionDetailScreen(collectionId: id);
       },
     ),
 
@@ -105,7 +108,8 @@ final goRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/favorites',
-              builder: (context, state) => const PlaceholderScreen(title: 'Favorites'),
+              builder: (context, state) =>
+                  const PlaceholderScreen(title: 'Favorites'),
             ),
           ],
         ),
