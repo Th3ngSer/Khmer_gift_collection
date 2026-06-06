@@ -42,9 +42,7 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
         (a) => {
           ...a,
           'avatar': a['profile_photo_url'] ?? fallbackAvatar, 
-          'cover':
-              a['profile_photo_url'] ??
-              fallbackCover, 
+          'cover': a['cover_photo_url'] ?? a['profile_photo_url'] ?? fallbackCover,
           'story': a['heritage_story'] ?? '', 
           'craft':
               'Master Artisan', 
