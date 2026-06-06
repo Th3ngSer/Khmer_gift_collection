@@ -27,7 +27,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: _buildBottomCTA(context, goldColor, productAsync.valueOrNull?.product),
+      bottomNavigationBar: _buildBottomCTA(context, goldColor, productAsync.value?.product),
       
       body: productAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: goldColor)),
@@ -75,7 +75,18 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(item['cover'] ?? '', fit: BoxFit.cover),
+                       Image.network(
+                        item['cover'] ?? '', 
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[900],
+                            child: const Center(
+                              child: Icon(Icons.broken_image, color: Colors.white54, size: 50),
+                            ),
+                          );
+                        },
+                      ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
