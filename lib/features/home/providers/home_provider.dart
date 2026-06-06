@@ -8,7 +8,7 @@ class HomeFeedData {
   final List<dynamic> artisans;
   final List<dynamic> promotions;
   final List<dynamic> collections;
-  final List<dynamic> items; // Products
+  final List<dynamic> items; 
 
   HomeFeedData({
     required this.artisans,

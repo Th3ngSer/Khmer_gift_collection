@@ -14,7 +14,7 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
-  bool _isFav = false; // Local state for the heart toggle demo
+  bool _isFav = false; 
 
   @override
   Widget build(BuildContext context) {
