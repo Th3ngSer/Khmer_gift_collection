@@ -59,9 +59,8 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/artisans/:id',
       builder: (context, state) {
-        // We pass the artisan data map through the 'extra' parameter
-        final artisan = state.extra as Map<String, dynamic>;
-        return ArtisanProfileScreen(artisanData: artisan);
+        final id = state.pathParameters['id']!;
+        return ArtisanProfileScreen(artisanId: id);
       },
     ),
 
