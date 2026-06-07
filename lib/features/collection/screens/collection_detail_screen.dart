@@ -45,7 +45,7 @@ class CollectionDetailScreen extends ConsumerWidget {
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.60, // Matches your shared ProductCard ratio
+                    childAspectRatio: 0.75,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => ProductCard(item: products[index]),

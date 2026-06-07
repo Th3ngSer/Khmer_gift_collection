@@ -18,12 +18,18 @@ final collectionDetailProvider =
       final String response = await rootBundle.loadString(
         'assets/mock/home_feed.json',
       );
-      final Map<String, dynamic> feedData = await json.decode(response);
-      final List<dynamic> collections = feedData['collections'];
+      final Map<String, dynamic> feedData = Map<String, dynamic>.from(
+        json.decode(response),
+      );
+      final List<dynamic> collections = List<dynamic>.from(
+        feedData['collections'],
+      );
 
-      final collection = collections.firstWhere(
-        (c) => c['id'].toString() == collectionId,
-        orElse: () => throw Exception('Collection not found'),
+      final collection = Map<String, dynamic>.from(
+        collections.firstWhere(
+          (c) => c['id'].toString() == collectionId,
+          orElse: () => throw Exception('Collection not found'),
+        ),
       );
 
       final itemIds = List<String>.from(collection['itemIds'] ?? []);
@@ -39,8 +45,7 @@ final collectionDetailProvider =
               .inFilter('id', itemIds);
 
           safeProducts = List.from(productsResponse);
-        } catch (e) {
-        }
+        } catch (e) {}
       }
 
       if (safeProducts.isEmpty) {
@@ -56,7 +61,7 @@ final collectionDetailProvider =
         final imageUrl = (images != null && images.isNotEmpty)
             ? images.first['image_url']
             : 'https://images.unsplash.com/photo-1618220179428-22790b461013';
-        return {...p, 'cover': imageUrl};
+        return Map<String, dynamic>.from({...p, 'cover': imageUrl});
       }).toList();
 
       return CollectionDetailData(

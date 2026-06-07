@@ -12,6 +12,7 @@ import '../../features/chat_reviews/presentation/chat_list_screen.dart';
 import '../../features/artisan/screens/artisan_profile_screen.dart';
 import '../../features/profile/screens/user_profile_screen.dart';
 import '../../features/collection/screens/collection_detail_screen.dart';
+import '../../features/favorites/screens/favorites_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -78,6 +79,11 @@ final goRouter = GoRouter(
           artisanName: extras['artisanName'] as String,
         );
       },
+    ),
+
+    GoRoute(
+      path: '/favorites',
+      builder: (context, state) => const FavoritesScreen(),
     ),
 
     StatefulShellRoute.indexedStack(
