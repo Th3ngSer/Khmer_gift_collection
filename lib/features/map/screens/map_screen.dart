@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:khmer_gift_collection/features/nearby/providers/artisan_location_providers.dart';
+import 'package:khmer_gift_collection/features/map/providers/artisan_location_providers.dart';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
