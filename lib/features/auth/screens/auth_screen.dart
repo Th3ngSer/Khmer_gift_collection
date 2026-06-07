@@ -93,7 +93,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: const Text(
                   'Try Again',
                   style: TextStyle(
-                    color: Color(0xFFD4AF37), 
+                    color: Color(0xFFD4AF37),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -152,6 +152,71 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 AuthToggleModeButton(
                   isSignUp: _isSignUp,
                   onPressed: () => setState(() => _isSignUp = !_isSignUp),
+                ),
+                // ADD THIS GOOGLE BUTTON SEPARATOR AND WIDGET HERE:
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: () =>
+                      ref.read(authProvider.notifier).signInWithGoogle(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.network(
+                        'https://developers.google.com/static/identity/images/g-logo.png',
+                        height: 18,
+                        width: 18,
+                        // CATCHES CORS & NETWORK ERRORS INSTANTLY TO PREVENT LAYOUT EXPLOSIONS:
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 18,
+                            height: 18,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF4285F4), // Official Google Blue
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Text(
+                              'G',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          color: Color(0xFF1F2937),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

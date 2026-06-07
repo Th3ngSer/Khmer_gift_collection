@@ -37,6 +37,13 @@ class AuthNotifier extends StreamNotifier<User?> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    await Supabase.instance.client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'khmergiftapp://login-callback',
+    );
+  }
+
   Future<void> signOut() async {
     await Supabase.instance.client.auth.signOut();
   }
