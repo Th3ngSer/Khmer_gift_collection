@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
 import '../../features/home/screens/home_screen.dart';
-import '../../features/nearby/screens/nearby_screen.dart';
+import '../../features/map/screens/map_screen.dart';
 import '../../features/quiz/screens/quiz_screen.dart';
 import '../../features/quiz/screens/quiz_results_screen.dart';
 import '../../features/product/screens/product_detail_screen.dart';
@@ -115,8 +115,8 @@ final goRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/nearby',
-              builder: (context, state) => const NearbyScreen(),
+              path: '/map',
+              builder: (context, state) => const MapScreen(),
             ),
           ],
         ),
