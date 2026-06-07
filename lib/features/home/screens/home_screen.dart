@@ -7,6 +7,7 @@ import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/constants/translations.dart';
+import '../../../core/theme/app_theme.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -109,6 +110,9 @@ class HomeScreen extends ConsumerWidget {
                       subtitle: t('curated_season'),
                     ),
                     _buildCollectionsCarousel(data.collections),
+
+                    // --- NEW: Workshop Reels CTA ---
+                    _buildWorkshopReelsCTA(context, t),
                   ],
                 ),
               ),
@@ -151,7 +155,7 @@ class HomeScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 40, bottom: 24),
                   child: Column(
                     children: [
-                      Divider(color: goldColor.withOpacity(0.3), indent: 140, endIndent: 140),
+                      Divider(color: goldColor.withAlpha(76), indent: 140, endIndent: 140),
                       const SizedBox(height: 12),
                       Text(
                         t('handmade_cambodia'),
@@ -433,6 +437,71 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildWorkshopReelsCTA(BuildContext context, String Function(String) t) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: GestureDetector(
+        onTap: () => context.push('/reels'),
+        child: Container(
+          height: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            image: const DecorationImage(
+              image: NetworkImage('https://assets.mixkit.com/videos/preview/mixkit-weaving-silk-on-a-loom-41584-0.jpg'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                colors: [Colors.black.withAlpha(150), Colors.transparent],
+              ),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.gold,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: AppTheme.gold.withAlpha(100), blurRadius: 15, spreadRadius: 2),
+                    ],
+                  ),
+                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('workshop_live'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'serif',
+                        ),
+                      ),
+                      Text(
+                        t('watch_how_made'),
+                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

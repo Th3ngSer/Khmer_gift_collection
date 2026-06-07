@@ -12,6 +12,7 @@ import '../../features/chat_reviews/presentation/chat_list_screen.dart';
 import '../../features/profile/screens/artisan_profile_screen.dart';
 import '../../features/profile/screens/user_profile_screen.dart';
 import '../../features/profile/screens/promotions_screen.dart';
+import '../../features/home/screens/workshop_reel_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -69,6 +70,11 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/promotions',
       builder: (context, state) => const PromotionsScreen(),
+    ),
+
+    GoRoute(
+      path: '/reels',
+      builder: (context, state) => const WorkshopReelScreen(),
     ),
 
     GoRoute(

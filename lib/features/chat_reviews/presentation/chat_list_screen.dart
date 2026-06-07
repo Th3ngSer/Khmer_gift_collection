@@ -6,6 +6,19 @@ import '../../../core/providers/theme_provider.dart';
 import '../../../core/constants/translations.dart';
 import '../../../core/theme/app_theme.dart';
 
+// Modern Notifier for search
+class ChatSearchNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void setSearch(String query) => state = query;
+  void clear() => state = '';
+}
+
+final chatSearchProvider = NotifierProvider<ChatSearchNotifier, String>(() {
+  return ChatSearchNotifier();
+});
+
 class ChatListScreen extends ConsumerWidget {
   const ChatListScreen({super.key});
 
@@ -13,6 +26,7 @@ class ChatListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = ref.watch(themeProvider) == ThemeMode.dark;
     final locale = ref.watch(localeProvider).languageCode;
+    final searchQuery = ref.watch(chatSearchProvider);
     
     String t(String key) => Translations.translate(key, locale);
 
@@ -21,7 +35,7 @@ class ChatListScreen extends ConsumerWidget {
     final cardBg = Theme.of(context).cardColor;
 
     // Mock data for UI demonstration
-    final chatList = [
+    final allChats = [
       {
         'name': 'Sophea Silk',
         'lastMessage': 'How is the progress on my silk scarf?',
@@ -45,6 +59,14 @@ class ChatListScreen extends ConsumerWidget {
       },
     ];
 
+    // Filter chats based on search query
+    final filteredChats = allChats.where((chat) {
+      final name = chat['name'].toString().toLowerCase();
+      final message = chat['lastMessage'].toString().toLowerCase();
+      final query = searchQuery.toLowerCase();
+      return name.contains(query) || message.contains(query);
+    }).toList();
+
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: AppBar(
@@ -57,24 +79,29 @@ class ChatListScreen extends ConsumerWidget {
             fontSize: 24,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search, color: textColor.withAlpha(180)),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Column(
         children: [
-          // Optional: Filter/Categories for chats (Active, Completed, All)
+          // Functional Search Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
+              onChanged: (value) {
+                ref.read(chatSearchProvider.notifier).setSearch(value);
+              },
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 hintText: t('search_messages'),
                 hintStyle: TextStyle(color: textColor.withAlpha(80), fontSize: 14),
                 prefixIcon: Icon(Icons.search, color: textColor.withAlpha(80), size: 20),
+                suffixIcon: searchQuery.isNotEmpty 
+                  ? IconButton(
+                      icon: Icon(Icons.clear, color: textColor.withAlpha(80), size: 20),
+                      onPressed: () {
+                        ref.read(chatSearchProvider.notifier).clear();
+                      },
+                    )
+                  : null,
                 filled: true,
                 fillColor: cardBg,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
@@ -87,22 +114,29 @@ class ChatListScreen extends ConsumerWidget {
           ),
           
           Expanded(
-            child: chatList.isEmpty 
+            child: filteredChats.isEmpty 
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.chat_bubble_outline, size: 64, color: textColor.withAlpha(30)),
+                      Icon(
+                        searchQuery.isEmpty ? Icons.chat_bubble_outline : Icons.search_off, 
+                        size: 64, 
+                        color: textColor.withAlpha(30)
+                      ),
                       const SizedBox(height: 16),
-                      Text(t('no_messages'), style: TextStyle(color: textColor.withAlpha(100))),
+                      Text(
+                        searchQuery.isEmpty ? t('no_messages') : 'No results found for "$searchQuery"', 
+                        style: TextStyle(color: textColor.withAlpha(100))
+                      ),
                     ],
                   ),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: chatList.length,
+                  itemCount: filteredChats.length,
                   itemBuilder: (context, index) {
-                    final chat = chatList[index];
+                    final chat = filteredChats[index];
                     return _buildChatItem(context, chat, isDark, textColor, cardBg);
                   },
                 ),
@@ -124,7 +158,7 @@ class ChatListScreen extends ConsumerWidget {
         context.push(
           '/chat-room/room_${chat['name']}',
           extra: {
-            'currentUserId': 'user_123', // Matches the mock user ID in provider
+            'currentUserId': 'user_123',
             'artisanName': chat['name'],
           },
         );
