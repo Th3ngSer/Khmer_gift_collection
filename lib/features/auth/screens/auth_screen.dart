@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_form.dart';
@@ -44,11 +45,60 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
       if (mounted) context.go('/home');
     } catch (e) {
+      // CHANGE YOUR CATCH BLOCK TO THIS:
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            behavior: SnackBarBehavior.floating,
+        String friendlyMessage =
+            'An unexpected error occurred. Please try again later.';
+
+        if (e is AuthException) {
+          final msg = e.message.toLowerCase();
+          // Translate raw database errors into beautiful natural text
+          if (msg.contains('invalid login credentials') ||
+              msg.contains('invalid_credentials')) {
+            friendlyMessage =
+                'The email or password you entered is incorrect. Please verify your credentials and try again.';
+          } else if (msg.contains('rate limit')) {
+            friendlyMessage =
+                'Too many attempts. Please wait a moment before trying again.';
+          } else {
+            friendlyMessage = e.message;
+          }
+        }
+
+        // Display a clean, native alert modal instead of a snackbar banner
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Sign In Failed',
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              friendlyMessage,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: Color(0xFF374151),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Try Again',
+                  style: TextStyle(
+                    color: Color(0xFFD4AF37), 
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       }
