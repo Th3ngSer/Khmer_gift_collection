@@ -5,6 +5,7 @@ import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/map/screens/map_screen.dart';
+import '../../features/product/screens/explore_screen.dart';
 import '../../features/quiz/screens/quiz_screen.dart';
 import '../../features/quiz/screens/quiz_results_screen.dart';
 import '../../features/product/screens/product_detail_screen.dart';
@@ -120,12 +121,12 @@ final goRouter = GoRouter(
             ),
           ],
         ),
-        // Tab 3: Saved (Favorites)
+        // Tab 3: All Products / Explore
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/favorites',
-              builder: (context, state) => const FavoritesScreen(),
+              path: '/explore', 
+              builder: (context, state) => const ExploreScreen(), 
             ),
           ],
         ),

@@ -38,9 +38,9 @@ class MainNavigationScaffold extends StatelessWidget {
             label: 'Map',
           ),
           NavigationDestination(
-            icon: Icon(Icons.favorite_outline),
-            selectedIcon: Icon(Icons.favorite, color: Color(0xFFD4AF37)),
-            label: 'Saved',
+            icon: Icon(Icons.grid_view_outlined),
+            selectedIcon: Icon(Icons.grid_view, color: Color(0xFFD4AF37)),
+            label: 'Explore',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),
