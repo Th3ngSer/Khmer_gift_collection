@@ -1,392 +1,441 @@
 // lib/features/nearby/screens/nearby_screen.dart
+//
+// Features:
+//  ✅ Real Google Map with custom-hue markers
+//  ✅ GPS distance calculated live from user location
+//  ✅ Loads artisans from Supabase (artisans table)
+//  ✅ Search bar (name + region)
+//  ✅ Directions button (opens Google Maps)
+//  ✅ Shows profile photo + heritage story in detail card
 
+import 'dart:math' show sqrt, sin, cos, atan2, pi;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
-// Note: avoid importing `app_shell.dart` here to prevent a circular import
-
-// ─── Data Model ────────────────────────────────────────────────────────────────
-
-class Atelier {
-  final String name;
-  final String city;
-  final String? address;
-  final String? hours;
-  final String? phone;
-  final List<String> tags;
-  final double distanceKm;
-  final double mapX; // 0.0 – 1.0 relative position on map
-  final double mapY;
-  final bool featured;
-
-  const Atelier({
-    required this.name,
-    required this.city,
-    this.address,
-    this.hours,
-    this.phone,
-    this.tags = const [],
-    required this.distanceKm,
-    required this.mapX,
-    required this.mapY,
-    this.featured = false,
-  });
-}
-
-const List<Atelier> kAteliers = [
-  Atelier(
-    name: 'Riverside Atelier',
-    city: 'Phnom Penh',
-    address: 'Street 178, near the National Museum',
-    hours: 'Tue–Sun, 10:00–19:00',
-    phone: '+855 23 555 0101',
-    tags: ['Heritage Silk', 'Modern Heritage'],
-    distanceKm: 0.8,
-    mapX: 0.62,
-    mapY: 0.52,
-    featured: true,
-  ),
-  Atelier(
-    name: "Tonle Sap Weavers' Hub",
-    city: 'Kampong Chhnang',
-    distanceKm: 91.2,
-    mapX: 0.30,
-    mapY: 0.28,
-  ),
-  Atelier(
-    name: 'Kampot Pepper Cellar',
-    city: 'Kampot',
-    distanceKm: 148.9,
-    mapX: 0.48,
-    mapY: 0.18,
-  ),
-  Atelier(
-    name: 'Battambang Silver House',
-    city: 'Battambang',
-    distanceKm: 291.3,
-    mapX: 0.15,
-    mapY: 0.14,
-  ),
-  Atelier(
-    name: 'Old Market Boutique',
-    city: 'Siem Reap',
-    distanceKm: 312.4,
-    mapX: 0.50,
-    mapY: 0.82,
-  ),
-];
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ─── Colours ───────────────────────────────────────────────────────────────────
 
 const _kCream    = Color(0xFFF5F0E8);
-const _kMapBg    = Color(0xFFEDE3D0);
-const _kMapShape = Color(0xFFD9C9A8);
-const _kLake     = Color(0xFFADD4CC);
 const _kPin      = Color(0xFF8B3A2A);
-const _kPinStar  = Color(0xFFC8A84B);
 const _kText     = Color(0xFF2C1A0E);
 const _kSubText  = Color(0xFF7A6651);
 const _kTag      = Color(0xFFEDE3D0);
 const _kSelected = Color(0xFF8B3A2A);
-const _kCompass  = Color(0xFFC8A84B);
+
+// ─── Data Model ────────────────────────────────────────────────────────────────
+
+class ArtisanLocation {
+  final String id;
+  final String name;
+  final String? region;       // used as "city" label
+  final String? heritageStory;
+  final String? profilePhotoUrl;
+  final String? coverPhotoUrl;
+  final double lat;
+  final double lng;
+
+  double? distanceKm; // computed after GPS fix
+
+  ArtisanLocation({
+    required this.id,
+    required this.name,
+    this.region,
+    this.heritageStory,
+    this.profilePhotoUrl,
+    this.coverPhotoUrl,
+    required this.lat,
+    required this.lng,
+    this.distanceKm,
+  });
+
+  LatLng get latLng => LatLng(lat, lng);
+
+  factory ArtisanLocation.fromMap(Map<String, dynamic> m) => ArtisanLocation(
+        id: m['id'].toString(),
+        name: m['name'] as String? ?? '',
+        region: m['region'] as String?,
+        heritageStory: m['heritage_story'] as String?,
+        profilePhotoUrl: m['profile_photo_url'] as String?,
+        coverPhotoUrl: m['cover_photo_url'] as String?,
+        lat: (m['latitude'] as num?)?.toDouble() ?? 0,
+        lng: (m['longitude'] as num?)?.toDouble() ?? 0,
+      );
+}
+
+// ─── Fallback data (shown while loading or on error) ──────────────────────────
+
+final _kFallback = <ArtisanLocation>[
+  ArtisanLocation(
+    id: 'f1', name: 'Srey Neang Silk Weaving',
+    region: 'Preah Dak, Siem Reap',
+    heritageStory: 'Practicing the ancient art of Khmer silk weaving.',
+    lat: 13.3633, lng: 103.8564,
+  ),
+  ArtisanLocation(
+    id: 'f2', name: 'Sopheap Clay Ceramics',
+    region: 'Kampong Chhnang',
+    heritageStory: 'Molding traditional unglazed pottery by hand.',
+    lat: 12.2500, lng: 104.6667,
+  ),
+];
+
+// ─── Haversine distance ────────────────────────────────────────────────────────
+
+double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
+  const r = 6371.0;
+  final dLat = (lat2 - lat1) * pi / 180;
+  final dLon = (lon2 - lon1) * pi / 180;
+  final a = sin(dLat / 2) * sin(dLat / 2) +
+      cos(lat1 * pi / 180) * cos(lat2 * pi / 180) *
+          sin(dLon / 2) * sin(dLon / 2);
+  return r * 2 * atan2(sqrt(a), sqrt(1 - a));
+}
+
+// ─── Riverpod providers ────────────────────────────────────────────────────────
+
+/// Fetches all artisans that have GPS coordinates set.
+final _artisansProvider = FutureProvider<List<ArtisanLocation>>((ref) async {
+  try {
+    final rows = await Supabase.instance.client
+        .from('artisans')
+        .select('id, name, region, heritage_story, profile_photo_url, cover_photo_url, latitude, longitude')
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
+        .order('name');
+    return (rows as List).map((r) => ArtisanLocation.fromMap(r)).toList();
+  } catch (e) {
+    // Fall back to seed data so the screen is never blank
+    return _kFallback;
+  }
+});
+
+/// Current GPS position of the user.
+class _UserLocationNotifier extends Notifier<LatLng?> {
+  @override
+  LatLng? build() => null;
+
+  void set(LatLng latLng) => state = latLng;
+}
+
+final _userLocationProvider =
+    NotifierProvider<_UserLocationNotifier, LatLng?>(_UserLocationNotifier.new);
 
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
-class NearbyScreen extends StatefulWidget {
+class NearbyScreen extends ConsumerStatefulWidget {
   const NearbyScreen({super.key});
 
   @override
-  State<NearbyScreen> createState() => _NearbyScreenState();
+  ConsumerState<NearbyScreen> createState() => _NearbyScreenState();
 }
 
-class _NearbyScreenState extends State<NearbyScreen> {
-  int _selectedAtelier = 0;
+class _NearbyScreenState extends ConsumerState<NearbyScreen> {
+  int _selectedIndex = 0;
+  GoogleMapController? _mapController;
+
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  static const _defaultCamera = CameraPosition(
+    target: LatLng(12.5657, 104.9910),
+    zoom: 6.5,
+  );
 
   @override
-  Widget build(BuildContext context) {
-    final selected = kAteliers[_selectedAtelier];
-
-    return Scaffold(
-      backgroundColor: _kCream,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DISCOVER',
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 2.5,
-                        color: _kSubText,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Nearby ateliers',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: _kText,
-                        fontFamily: 'Georgia',
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Tap a pin to see what's at each location.",
-                      style: TextStyle(fontSize: 13, color: _kSubText),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── Map ──
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: SizedBox(
-                    height: 240,
-                    child: _MapWidget(
-                      ateliers: kAteliers,
-                      selectedIndex: _selectedAtelier,
-                      onTap: (i) => setState(() => _selectedAtelier = i),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Detail Card ──
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _DetailCard(atelier: selected),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── List header ──
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'SORTED BY PROXIMITY',
-                  style: TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 2.2,
-                    color: _kSubText,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // ── Atelier list ──
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: kAteliers.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, i) => _AtelierListTile(
-                  atelier: kAteliers[i],
-                  isSelected: i == _selectedAtelier,
-                  onTap: () => setState(() => _selectedAtelier = i),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Map ───────────────────────────────────────────────────────────────────────
-
-class _MapWidget extends StatelessWidget {
-  final List<Atelier> ateliers;
-  final int selectedIndex;
-  final ValueChanged<int> onTap;
-
-  const _MapWidget({
-    required this.ateliers,
-    required this.selectedIndex,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final w = constraints.maxWidth;
-      final h = constraints.maxHeight;
-      return Stack(
-        children: [
-          Container(color: _kMapBg),
-          CustomPaint(size: Size(w, h), painter: _MapPainter()),
-          Positioned(
-            top: 16,
-            right: 20,
-            child: _CompassWidget(),
-          ),
-          ...List.generate(ateliers.length, (i) {
-            final a = ateliers[i];
-            return Positioned(
-              left: a.mapX * w - 14,
-              top: a.mapY * h - 28,
-              child: GestureDetector(
-                onTap: () => onTap(i),
-                child: _PinWidget(
-                  featured: a.featured,
-                  selected: i == selectedIndex,
-                ),
-              ),
-            );
-          }),
-        ],
-      );
+  void initState() {
+    super.initState();
+    _initLocation();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase().trim();
+        _selectedIndex = 0;
+      });
     });
   }
-}
 
-class _MapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
+  // ── Location ────────────────────────────────────────────────────────────────
 
-    // Cambodia-like land blob
-    final path = Path()
-      ..moveTo(w * 0.25, h * 0.10)
-      ..cubicTo(w * 0.40, h * 0.00, w * 0.70, h * 0.02, w * 0.85, h * 0.15)
-      ..cubicTo(w * 1.00, h * 0.28, w * 0.98, h * 0.55, w * 0.90, h * 0.70)
-      ..cubicTo(w * 0.82, h * 0.88, w * 0.60, h * 1.00, w * 0.40, h * 0.95)
-      ..cubicTo(w * 0.20, h * 0.90, w * 0.02, h * 0.75, w * 0.05, h * 0.55)
-      ..cubicTo(w * 0.00, h * 0.35, w * 0.10, h * 0.20, w * 0.25, h * 0.10)
-      ..close();
-    canvas.drawPath(path, Paint()..color = _kMapShape);
+  Future<void> _initLocation() async {
+    bool enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) return;
 
-    // Tonle Sap lake
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(w * 0.38, h * 0.52),
-        width: w * 0.22,
-        height: h * 0.14,
-      ),
-      Paint()..color = _kLake,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}
-
-class _PinWidget extends StatelessWidget {
-  final bool featured;
-  final bool selected;
-  const _PinWidget({this.featured = false, this.selected = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 28,
-      height: 34,
-      child: CustomPaint(
-        painter: _PinPainter(featured: featured, selected: selected),
-      ),
-    );
-  }
-}
-
-class _PinPainter extends CustomPainter {
-  final bool featured;
-  final bool selected;
-  _PinPainter({required this.featured, required this.selected});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final r  = size.width / 2;
-    final paint = Paint()
-      ..color = _kPin.withOpacity(selected ? 1.0 : 0.85);
-
-    // Body: circle + teardrop point
-    final path = Path()
-      ..addOval(Rect.fromCircle(center: Offset(cx, r), radius: r))
-      ..moveTo(cx - r * 0.4, size.height * 0.72 * 0.75)
-      ..lineTo(cx, size.height)
-      ..lineTo(cx + r * 0.4, size.height * 0.72 * 0.75)
-      ..close();
-    canvas.drawPath(path, paint);
-
-    if (featured) {
-      _drawStar(canvas, Offset(cx, r), r * 0.55,
-          Paint()..color = _kPinStar);
-    } else {
-      canvas.drawCircle(
-          Offset(cx, r), r * 0.35, Paint()..color = Colors.white);
+    LocationPermission perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
     }
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) return;
+
+    final pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    final latLng = LatLng(pos.latitude, pos.longitude);
+    ref.read(_userLocationProvider.notifier).set(latLng);
+    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 7.0));
   }
 
-  void _drawStar(Canvas canvas, Offset center, double radius, Paint paint) {
-    final path = Path();
-    for (int i = 0; i < 5; i++) {
-      final oA = (2 * math.pi * i / 5) - math.pi / 2;
-      final iA = oA + math.pi / 5;
-      final outer = Offset(center.dx + radius * math.cos(oA),
-          center.dy + radius * math.sin(oA));
-      final inner = Offset(center.dx + radius * 0.45 * math.cos(iA),
-          center.dy + radius * 0.45 * math.sin(iA));
-      if (i == 0) {
-        path.moveTo(outer.dx, outer.dy);
-      } else {
-        path.lineTo(outer.dx, outer.dy);
+  // ── Filter + sort ────────────────────────────────────────────────────────────
+
+  List<ArtisanLocation> _process(List<ArtisanLocation> raw, LatLng? userPos) {
+    // Compute distances
+    for (final a in raw) {
+      if (userPos != null) {
+        a.distanceKm = _haversineKm(
+            userPos.latitude, userPos.longitude, a.lat, a.lng);
       }
-      path.lineTo(inner.dx, inner.dy);
     }
-    path.close();
-    canvas.drawPath(path, paint);
+
+    var list = raw.where((a) {
+      if (_searchQuery.isEmpty) return true;
+      final hay = '${a.name} ${a.region ?? ''}'.toLowerCase();
+      return hay.contains(_searchQuery);
+    }).toList();
+
+    list.sort((a, b) => userPos != null
+        ? (a.distanceKm ?? 9999).compareTo(b.distanceKm ?? 9999)
+        : a.name.compareTo(b.name));
+
+    return list;
+  }
+
+  // ── Markers ──────────────────────────────────────────────────────────────────
+
+  Set<Marker> _buildMarkers(List<ArtisanLocation> list, LatLng? userPos) {
+    return {
+      if (userPos != null)
+        Marker(
+          markerId: const MarkerId('user'),
+          position: userPos,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          infoWindow: const InfoWindow(title: 'You are here'),
+        ),
+      ...list.asMap().entries.map((e) {
+        final i = e.key;
+        final a = e.value;
+        return Marker(
+          markerId: MarkerId('artisan_${a.id}'),
+          position: a.latLng,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(title: a.name, snippet: a.region),
+          onTap: () {
+            setState(() => _selectedIndex = i);
+            _mapController?.animateCamera(
+                CameraUpdate.newLatLngZoom(a.latLng, 13.0));
+          },
+        );
+      }),
+    };
+  }
+
+  void _selectArtisan(int i, ArtisanLocation a) {
+    setState(() => _selectedIndex = i);
+    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(a.latLng, 13.0));
+  }
+
+  Future<void> _openDirections(ArtisanLocation a) async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}&travelmode=driving',
+    );
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final async   = ref.watch(_artisansProvider);
+    final userPos = ref.watch(_userLocationProvider);
+
+    return async.when(
+      loading: () => const Scaffold(
+        backgroundColor: _kCream,
+        body: Center(child: CircularProgressIndicator(color: _kPin)),
+      ),
+      error: (e, _) => Scaffold(
+        backgroundColor: _kCream,
+        body: Center(child: Text('Error: $e')),
+      ),
+      data: (raw) {
+        final artisans = _process(raw, userPos);
+        final safeIdx  = _selectedIndex.clamp(0, (artisans.length - 1).clamp(0, 9999));
+        final selected = artisans.isNotEmpty ? artisans[safeIdx] : null;
+
+        return Scaffold(
+          backgroundColor: _kCream,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // ── Header ────────────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('DISCOVER',
+                            style: TextStyle(
+                                fontSize: 11, letterSpacing: 2.5, color: _kSubText)),
+                        const SizedBox(height: 4),
+                        Text('Nearby artisans',
+                            style: TextStyle(
+                                fontSize: 28, fontWeight: FontWeight.w700,
+                                color: _kText, fontFamily: 'Georgia')),
+                        const SizedBox(height: 4),
+                        Text('Tap a pin or card to explore.',
+                            style: TextStyle(fontSize: 13, color: _kSubText)),
+                      ],
+                    ),
+                  ),
+
+                  // ── Search bar ────────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(color: _kText, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Search by name or region…',
+                        hintStyle: TextStyle(color: _kSubText, fontSize: 14),
+                        prefixIcon: Icon(Icons.search, color: _kSubText, size: 20),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.close, color: _kSubText, size: 18),
+                                onPressed: () => _searchController.clear(),
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // ── Google Map (mobile only) ──────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: SizedBox(
+                        height: 280,
+                        child: kIsWeb
+                            ? _WebMapPlaceholder(artisans: artisans)
+                            : GoogleMap(
+                                initialCameraPosition: _defaultCamera,
+                                markers: _buildMarkers(artisans, userPos),
+                                myLocationEnabled: true,
+                                myLocationButtonEnabled: false,
+                                zoomControlsEnabled: false,
+                                mapToolbarEnabled: false,
+                                onMapCreated: (c) {
+                                  _mapController = c;
+                                  if (userPos != null) {
+                                    c.animateCamera(
+                                        CameraUpdate.newLatLngZoom(userPos, 7.0));
+                                  }
+                                },
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Detail card ───────────────────────────────────────────
+                  if (selected != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _DetailCard(
+                        artisan: selected,
+                        onDirections: () => _openDirections(selected),
+                      ),
+                    ),
+
+                  const SizedBox(height: 20),
+
+                  // ── List header ───────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Text(
+                          userPos != null
+                              ? 'SORTED BY DISTANCE'
+                              : 'SORTED BY NAME',
+                          style: TextStyle(
+                              fontSize: 11, letterSpacing: 2.2, color: _kSubText),
+                        ),
+                        const Spacer(),
+                        Text('${artisans.length} artisans',
+                            style: TextStyle(fontSize: 11, color: _kSubText)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // ── List ──────────────────────────────────────────────────
+                  if (artisans.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Center(
+                        child: Text('No artisans match your search.',
+                            style: TextStyle(color: _kSubText)),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: artisans.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (_, i) => _ArtisanListTile(
+                        artisan: artisans[i],
+                        isSelected: i == safeIdx,
+                        onTap: () => _selectArtisan(i, artisans[i]),
+                      ),
+                    ),
+
+                  const SizedBox(height: 28),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _PinPainter old) =>
-      old.featured != featured || old.selected != selected;
-}
-
-class _CompassWidget extends StatelessWidget {
-  const _CompassWidget();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: _kCompass.withOpacity(0.25),
-        shape: BoxShape.circle,
-        border: Border.all(color: _kCompass, width: 1.5),
-      ),
-      child: Center(
-        child: Text('N',
-            style: TextStyle(
-                color: _kCompass,
-                fontSize: 14,
-                fontWeight: FontWeight.bold)),
-      ),
-    );
+  void dispose() {
+    _mapController?.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 }
 
 // ─── Detail Card ───────────────────────────────────────────────────────────────
 
 class _DetailCard extends StatelessWidget {
-  final Atelier atelier;
-  const _DetailCard({required this.atelier});
+  final ArtisanLocation artisan;
+  final VoidCallback onDirections;
+
+  const _DetailCard({required this.artisan, required this.onDirections});
 
   @override
   Widget build(BuildContext context) {
@@ -396,108 +445,152 @@ class _DetailCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4)),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            atelier.city.toUpperCase(),
-            style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 2.0,
-                color: _kPin,
-                fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            atelier.name,
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: _kText,
-                fontFamily: 'Georgia'),
-          ),
-          if (atelier.address != null) ...[
-            const SizedBox(height: 10),
-            _InfoRow(icon: Icons.location_on_outlined, text: atelier.address!),
-          ],
-          if (atelier.hours != null) ...[
-            const SizedBox(height: 6),
-            _InfoRow(icon: Icons.access_time_outlined, text: atelier.hours!),
-          ],
-          if (atelier.phone != null) ...[
-            const SizedBox(height: 6),
-            _InfoRow(icon: Icons.phone_outlined, text: atelier.phone!),
-          ],
-          if (atelier.tags.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children:
-                  atelier.tags.map((t) => _TagChip(label: t)).toList(),
+          // Cover photo or placeholder
+          if (artisan.coverPhotoUrl != null)
+            Image.network(
+              artisan.coverPhotoUrl!,
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            )
+          else
+            Container(
+              height: 80,
+              color: _kTag,
+              child: Center(
+                child: Icon(Icons.store_outlined, color: _kPin, size: 36),
+              ),
             ),
-          ],
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar + name row
+                Row(
+                  children: [
+                    if (artisan.profilePhotoUrl != null)
+                      ClipOval(
+                        child: Image.network(
+                          artisan.profilePhotoUrl!,
+                          width: 44, height: 44,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _avatarPlaceholder(),
+                        ),
+                      )
+                    else
+                      _avatarPlaceholder(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            artisan.name,
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: _kText,
+                                fontFamily: 'Georgia'),
+                          ),
+                          if (artisan.region != null)
+                            Text(artisan.region!,
+                                style: TextStyle(
+                                    fontSize: 12, color: _kPin,
+                                    fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                    if (artisan.distanceKm != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _kTag,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${artisan.distanceKm!.toStringAsFixed(1)} km',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: _kPin,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                  ],
+                ),
+
+                // Heritage story
+                if (artisan.heritageStory != null &&
+                    artisan.heritageStory!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    artisan.heritageStory!,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: _kSubText,
+                        height: 1.5),
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+
+                // Directions button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: onDirections,
+                    icon: const Icon(Icons.directions_outlined, size: 18),
+                    label: const Text('Get Directions'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _kPin,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
-}
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoRow({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 15, color: _kSubText),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text(text,
-                style: TextStyle(fontSize: 13, color: _kSubText))),
-      ],
-    );
-  }
-}
-
-class _TagChip extends StatelessWidget {
-  final String label;
-  const _TagChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-          color: _kTag, borderRadius: BorderRadius.circular(20)),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 12,
-              color: _kText,
-              fontWeight: FontWeight.w500)),
-    );
-  }
+  Widget _avatarPlaceholder() => Container(
+        width: 44, height: 44,
+        decoration: BoxDecoration(
+            color: _kTag, shape: BoxShape.circle),
+        child: Icon(Icons.person_outline, color: _kPin, size: 22),
+      );
 }
 
 // ─── List Tile ─────────────────────────────────────────────────────────────────
 
-class _AtelierListTile extends StatelessWidget {
-  final Atelier atelier;
+class _ArtisanListTile extends StatelessWidget {
+  final ArtisanLocation artisan;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _AtelierListTile({
-    required this.atelier,
+  const _ArtisanListTile({
+    required this.artisan,
     required this.isSelected,
     required this.onTap,
   });
@@ -508,8 +601,7 @@ class _AtelierListTile extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -519,37 +611,136 @@ class _AtelierListTile extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2)),
           ],
         ),
         child: Row(
           children: [
+            // Avatar
+            ClipOval(
+              child: artisan.profilePhotoUrl != null
+                  ? Image.network(
+                      artisan.profilePhotoUrl!,
+                      width: 40, height: 40,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    )
+                  : _placeholder(),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(atelier.name,
+                  Text(artisan.name,
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: _kText)),
                   const SizedBox(height: 2),
-                  Text(atelier.city,
-                      style:
-                          TextStyle(fontSize: 12, color: _kSubText)),
+                  Text(artisan.region ?? '—',
+                      style: TextStyle(fontSize: 12, color: _kSubText)),
                 ],
               ),
             ),
-            Text('${atelier.distanceKm} km',
-                style: TextStyle(
-                    fontSize: 13,
-                    color: _kSubText,
-                    fontWeight: FontWeight.w500)),
+            if (artisan.distanceKm != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _kTag,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${artisan.distanceKm!.toStringAsFixed(1)} km',
+                  style: TextStyle(
+                      fontSize: 12, color: _kPin, fontWeight: FontWeight.w600),
+                ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+        width: 40, height: 40,
+        color: _kTag,
+        child: Icon(Icons.person_outline, color: _kPin, size: 20),
+      );
+}
+
+// ─── Web Map Placeholder ───────────────────────────────────────────────────────
+// google_maps_flutter doesn't support web. On web we show a styled card
+// with quick-links to open each artisan in Google Maps.
+
+class _WebMapPlaceholder extends StatelessWidget {
+  final List<ArtisanLocation> artisans;
+  const _WebMapPlaceholder({required this.artisans});
+
+  Future<void> _openMap(ArtisanLocation a) async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}',
+    );
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _kTag,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.map_outlined, size: 36, color: _kPin),
+          const SizedBox(height: 8),
+          Text(
+            'Interactive map available on mobile',
+            style: TextStyle(
+                fontSize: 13, color: _kText, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Open an artisan directly in Google Maps:',
+            style: TextStyle(fontSize: 12, color: _kSubText),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: artisans.take(5).map((a) {
+              return GestureDetector(
+                onTap: () => _openMap(a),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _kPin.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.open_in_new, size: 12, color: _kPin),
+                      const SizedBox(width: 4),
+                      Text(a.name,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: _kPin,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }

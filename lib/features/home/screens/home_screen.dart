@@ -5,6 +5,7 @@ import '../providers/home_provider.dart';
 import '../widgets/story_viewer.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/product_card.dart';
+import 'package:khmer_gift_collection/features/nearby/screens/nearby_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
