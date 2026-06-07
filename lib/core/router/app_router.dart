@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
 import '../../features/home/screens/home_screen.dart';
@@ -13,6 +14,7 @@ import '../../features/artisan/screens/artisan_profile_screen.dart';
 import '../../features/profile/screens/user_profile_screen.dart';
 import '../../features/collection/screens/collection_detail_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
+import '../../features/auth/screens/auth_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -34,8 +36,22 @@ class PlaceholderScreen extends StatelessWidget {
 
 final goRouter = GoRouter(
   initialLocation: '/',
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isLoggingIn = state.matchedLocation == '/auth';
+    final isSplash = state.matchedLocation == '/';
+
+    if (session == null) {
+      if (!isLoggingIn && !isSplash) return '/auth';
+    } else {
+      if (isLoggingIn || isSplash) return '/home';
+    }
+    return null;
+  },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+
+    GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
 
     GoRoute(path: '/quiz', builder: (context, state) => const QuizScreen()),
 
