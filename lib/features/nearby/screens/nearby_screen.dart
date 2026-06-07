@@ -1,129 +1,22 @@
 // lib/features/nearby/screens/nearby_screen.dart
 //
-// Features:
-//  ✅ Real Google Map with custom-hue markers
-//  ✅ GPS distance calculated live from user location
-//  ✅ Loads artisans from Supabase (artisans table)
-//  ✅ Search bar (name + region)
-//  ✅ Directions button (opens Google Maps)
-//  ✅ Shows profile photo + heritage story in detail card
-
-import 'dart:math' show sqrt, sin, cos, atan2, pi;
+// Screen 7 — Nearby
+// ✅ Mini-map on top (mobile only) with all artisan + pickup pins
+// ✅ Tap pin → scrolls to that artisan + highlights card
+// ✅ List sorted by real GPS distance
+// ✅ Search bar (name + region)
+// ✅ Filter chips: All / Workshops / Pickup Points
+// ✅ Detail card with photo, heritage story, distance badge
+// ✅ Directions button
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// ─── Colours ───────────────────────────────────────────────────────────────────
-
-const _kCream    = Color(0xFFF5F0E8);
-const _kPin      = Color(0xFF8B3A2A);
-const _kText     = Color(0xFF2C1A0E);
-const _kSubText  = Color(0xFF7A6651);
-const _kTag      = Color(0xFFEDE3D0);
-const _kSelected = Color(0xFF8B3A2A);
-
-// ─── Data Model ────────────────────────────────────────────────────────────────
-
-class ArtisanLocation {
-  final String id;
-  final String name;
-  final String? region;       // used as "city" label
-  final String? heritageStory;
-  final String? profilePhotoUrl;
-  final String? coverPhotoUrl;
-  final double lat;
-  final double lng;
-
-  double? distanceKm; // computed after GPS fix
-
-  ArtisanLocation({
-    required this.id,
-    required this.name,
-    this.region,
-    this.heritageStory,
-    this.profilePhotoUrl,
-    this.coverPhotoUrl,
-    required this.lat,
-    required this.lng,
-    this.distanceKm,
-  });
-
-  LatLng get latLng => LatLng(lat, lng);
-
-  factory ArtisanLocation.fromMap(Map<String, dynamic> m) => ArtisanLocation(
-        id: m['id'].toString(),
-        name: m['name'] as String? ?? '',
-        region: m['region'] as String?,
-        heritageStory: m['heritage_story'] as String?,
-        profilePhotoUrl: m['profile_photo_url'] as String?,
-        coverPhotoUrl: m['cover_photo_url'] as String?,
-        lat: (m['latitude'] as num?)?.toDouble() ?? 0,
-        lng: (m['longitude'] as num?)?.toDouble() ?? 0,
-      );
-}
-
-// ─── Fallback data (shown while loading or on error) ──────────────────────────
-
-final _kFallback = <ArtisanLocation>[
-  ArtisanLocation(
-    id: 'f1', name: 'Srey Neang Silk Weaving',
-    region: 'Preah Dak, Siem Reap',
-    heritageStory: 'Practicing the ancient art of Khmer silk weaving.',
-    lat: 13.3633, lng: 103.8564,
-  ),
-  ArtisanLocation(
-    id: 'f2', name: 'Sopheap Clay Ceramics',
-    region: 'Kampong Chhnang',
-    heritageStory: 'Molding traditional unglazed pottery by hand.',
-    lat: 12.2500, lng: 104.6667,
-  ),
-];
-
-// ─── Haversine distance ────────────────────────────────────────────────────────
-
-double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
-  const r = 6371.0;
-  final dLat = (lat2 - lat1) * pi / 180;
-  final dLon = (lon2 - lon1) * pi / 180;
-  final a = sin(dLat / 2) * sin(dLat / 2) +
-      cos(lat1 * pi / 180) * cos(lat2 * pi / 180) *
-          sin(dLon / 2) * sin(dLon / 2);
-  return r * 2 * atan2(sqrt(a), sqrt(1 - a));
-}
-
-// ─── Riverpod providers ────────────────────────────────────────────────────────
-
-/// Fetches all artisans that have GPS coordinates set.
-final _artisansProvider = FutureProvider<List<ArtisanLocation>>((ref) async {
-  try {
-    final rows = await Supabase.instance.client
-        .from('artisans')
-        .select('id, name, region, heritage_story, profile_photo_url, cover_photo_url, latitude, longitude')
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null)
-        .order('name');
-    return (rows as List).map((r) => ArtisanLocation.fromMap(r)).toList();
-  } catch (e) {
-    // Fall back to seed data so the screen is never blank
-    return _kFallback;
-  }
-});
-
-/// Current GPS position of the user.
-class _UserLocationNotifier extends Notifier<LatLng?> {
-  @override
-  LatLng? build() => null;
-
-  void set(LatLng latLng) => state = latLng;
-}
-
-final _userLocationProvider =
-    NotifierProvider<_UserLocationNotifier, LatLng?>(_UserLocationNotifier.new);
+import 'package:khmer_gift_collection/features/nearby/providers/artisan_location_providers.dart';
 
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
@@ -136,10 +29,10 @@ class NearbyScreen extends ConsumerStatefulWidget {
 
 class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   int _selectedIndex = 0;
-  GoogleMapController? _mapController;
-
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
+  GoogleMapController? _mapCtrl;
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+  PinType? _filter; // null = all
 
   static const _defaultCamera = CameraPosition(
     target: LatLng(12.5657, 104.9910),
@@ -150,97 +43,61 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
   void initState() {
     super.initState();
     _initLocation();
-    _searchController.addListener(() {
+    _searchCtrl.addListener(() {
       setState(() {
-        _searchQuery = _searchController.text.toLowerCase().trim();
+        _query = _searchCtrl.text.toLowerCase().trim();
         _selectedIndex = 0;
       });
     });
   }
 
-  // ── Location ────────────────────────────────────────────────────────────────
+  // ── GPS ─────────────────────────────────────────────────────────────────────
 
   Future<void> _initLocation() async {
-    bool enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) return;
-
-    LocationPermission perm = await Geolocator.checkPermission();
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+    var perm = await Geolocator.checkPermission();
     if (perm == LocationPermission.denied) {
       perm = await Geolocator.requestPermission();
     }
     if (perm == LocationPermission.denied ||
         perm == LocationPermission.deniedForever) return;
-
     final pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    final latLng = LatLng(pos.latitude, pos.longitude);
-    ref.read(_userLocationProvider.notifier).set(latLng);
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 7.0));
+        desiredAccuracy: LocationAccuracy.high);
+    final ll = LatLng(pos.latitude, pos.longitude);
+    ref.read(userLocationProvider.notifier).set(ll);
+    _mapCtrl?.animateCamera(CameraUpdate.newLatLngZoom(ll, 7.0));
   }
 
   // ── Filter + sort ────────────────────────────────────────────────────────────
 
-  List<ArtisanLocation> _process(List<ArtisanLocation> raw, LatLng? userPos) {
-    // Compute distances
+  List<ArtisanLocation> _process(
+      List<ArtisanLocation> raw, LatLng? userPos) {
     for (final a in raw) {
       if (userPos != null) {
-        a.distanceKm = _haversineKm(
+        a.distanceKm = haversineKm(
             userPos.latitude, userPos.longitude, a.lat, a.lng);
       }
     }
-
     var list = raw.where((a) {
-      if (_searchQuery.isEmpty) return true;
-      final hay = '${a.name} ${a.region ?? ''}'.toLowerCase();
-      return hay.contains(_searchQuery);
+      if (_filter != null && a.pinType != _filter) return false;
+      if (_query.isEmpty) return true;
+      return '${a.name} ${a.region ?? ''}'.toLowerCase().contains(_query);
     }).toList();
 
     list.sort((a, b) => userPos != null
         ? (a.distanceKm ?? 9999).compareTo(b.distanceKm ?? 9999)
         : a.name.compareTo(b.name));
-
     return list;
   }
 
-  // ── Markers ──────────────────────────────────────────────────────────────────
-
-  Set<Marker> _buildMarkers(List<ArtisanLocation> list, LatLng? userPos) {
-    return {
-      if (userPos != null)
-        Marker(
-          markerId: const MarkerId('user'),
-          position: userPos,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          infoWindow: const InfoWindow(title: 'You are here'),
-        ),
-      ...list.asMap().entries.map((e) {
-        final i = e.key;
-        final a = e.value;
-        return Marker(
-          markerId: MarkerId('artisan_${a.id}'),
-          position: a.latLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          infoWindow: InfoWindow(title: a.name, snippet: a.region),
-          onTap: () {
-            setState(() => _selectedIndex = i);
-            _mapController?.animateCamera(
-                CameraUpdate.newLatLngZoom(a.latLng, 13.0));
-          },
-        );
-      }),
-    };
-  }
-
-  void _selectArtisan(int i, ArtisanLocation a) {
+  void _selectLocation(int i, ArtisanLocation a) {
     setState(() => _selectedIndex = i);
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(a.latLng, 13.0));
+    _mapCtrl?.animateCamera(CameraUpdate.newLatLngZoom(a.latLng, 13.0));
   }
 
   Future<void> _openDirections(ArtisanLocation a) async {
     final url = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}&travelmode=driving',
-    );
+        'https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}&travelmode=driving');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -250,32 +107,29 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final async   = ref.watch(_artisansProvider);
-    final userPos = ref.watch(_userLocationProvider);
+    final async   = ref.watch(artisansProvider);
+    final userPos = ref.watch(userLocationProvider);
 
     return async.when(
       loading: () => const Scaffold(
-        backgroundColor: _kCream,
-        body: Center(child: CircularProgressIndicator(color: _kPin)),
-      ),
-      error: (e, _) => Scaffold(
-        backgroundColor: _kCream,
-        body: Center(child: Text('Error: $e')),
-      ),
+          backgroundColor: kMapCream,
+          body: Center(child: CircularProgressIndicator(color: kMapPin))),
+      error: (e, _) =>
+          Scaffold(body: Center(child: Text('Error: $e'))),
       data: (raw) {
-        final artisans = _process(raw, userPos);
-        final safeIdx  = _selectedIndex.clamp(0, (artisans.length - 1).clamp(0, 9999));
-        final selected = artisans.isNotEmpty ? artisans[safeIdx] : null;
+        final list     = _process(raw, userPos);
+        final safeIdx  = _selectedIndex.clamp(0, (list.length - 1).clamp(0, 9999));
+        final selected = list.isNotEmpty ? list[safeIdx] : null;
 
         return Scaffold(
-          backgroundColor: _kCream,
+          backgroundColor: kMapCream,
           body: SafeArea(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  // ── Header ────────────────────────────────────────────────
+                  // ── Header ──────────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                     child: Column(
@@ -283,33 +137,42 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
                       children: [
                         Text('DISCOVER',
                             style: TextStyle(
-                                fontSize: 11, letterSpacing: 2.5, color: _kSubText)),
+                                fontSize: 11,
+                                letterSpacing: 2.5,
+                                color: kMapSubText)),
                         const SizedBox(height: 4),
-                        Text('Nearby artisans',
+                        Text('Nearby',
                             style: TextStyle(
-                                fontSize: 28, fontWeight: FontWeight.w700,
-                                color: _kText, fontFamily: 'Georgia')),
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: kMapText,
+                                fontFamily: 'Georgia')),
                         const SizedBox(height: 4),
-                        Text('Tap a pin or card to explore.',
-                            style: TextStyle(fontSize: 13, color: _kSubText)),
+                        Text('Artisan workshops & pickup points near you.',
+                            style:
+                                TextStyle(fontSize: 13, color: kMapSubText)),
                       ],
                     ),
                   ),
 
-                  // ── Search bar ────────────────────────────────────────────
+                  // ── Search bar ───────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
-                      controller: _searchController,
-                      style: TextStyle(color: _kText, fontSize: 14),
+                      controller: _searchCtrl,
+                      style:
+                          TextStyle(color: kMapText, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Search by name or region…',
-                        hintStyle: TextStyle(color: _kSubText, fontSize: 14),
-                        prefixIcon: Icon(Icons.search, color: _kSubText, size: 20),
-                        suffixIcon: _searchQuery.isNotEmpty
+                        hintStyle: TextStyle(
+                            color: kMapSubText, fontSize: 14),
+                        prefixIcon: Icon(Icons.search,
+                            color: kMapSubText, size: 20),
+                        suffixIcon: _query.isNotEmpty
                             ? IconButton(
-                                icon: Icon(Icons.close, color: _kSubText, size: 18),
-                                onPressed: () => _searchController.clear(),
+                                icon: Icon(Icons.close,
+                                    color: kMapSubText, size: 18),
+                                onPressed: () => _searchCtrl.clear(),
                               )
                             : null,
                         filled: true,
@@ -324,29 +187,82 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
                     ),
                   ),
 
+                  const SizedBox(height: 10),
+
+                  // ── Filter chips ─────────────────────────────────────────
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _Chip(
+                          label: 'All',
+                          active: _filter == null,
+                          color: kMapPin,
+                          onTap: () =>
+                              setState(() { _filter = null; _selectedIndex = 0; }),
+                        ),
+                        const SizedBox(width: 8),
+                        _Chip(
+                          label: 'Workshops',
+                          icon: Icons.store_outlined,
+                          active: _filter == PinType.artisan,
+                          color: kMapPin,
+                          onTap: () => setState(() {
+                            _filter = _filter == PinType.artisan
+                                ? null
+                                : PinType.artisan;
+                            _selectedIndex = 0;
+                          }),
+                        ),
+                        const SizedBox(width: 8),
+                        _Chip(
+                          label: 'Pickup Points',
+                          icon: Icons.local_shipping_outlined,
+                          active: _filter == PinType.pickup,
+                          color: kMapPickup,
+                          onTap: () => setState(() {
+                            _filter = _filter == PinType.pickup
+                                ? null
+                                : PinType.pickup;
+                            _selectedIndex = 0;
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   const SizedBox(height: 14),
 
-                  // ── Google Map (mobile only) ──────────────────────────────
+                  // ── Mini-map (mobile only) ───────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: SizedBox(
-                        height: 280,
+                        height: 220,
                         child: kIsWeb
-                            ? _WebMapPlaceholder(artisans: artisans)
+                            ? _WebMapNote(locations: list)
                             : GoogleMap(
                                 initialCameraPosition: _defaultCamera,
-                                markers: _buildMarkers(artisans, userPos),
+                                markers: buildMapMarkers(
+                                  locations: list,
+                                  userPos: userPos,
+                                  onTap: (a) {
+                                    final i = list.indexOf(a);
+                                    if (i >= 0) _selectLocation(i, a);
+                                  },
+                                ),
                                 myLocationEnabled: true,
                                 myLocationButtonEnabled: false,
                                 zoomControlsEnabled: false,
                                 mapToolbarEnabled: false,
                                 onMapCreated: (c) {
-                                  _mapController = c;
+                                  _mapCtrl = c;
                                   if (userPos != null) {
                                     c.animateCamera(
-                                        CameraUpdate.newLatLngZoom(userPos, 7.0));
+                                        CameraUpdate.newLatLngZoom(
+                                            userPos, 7.0));
                                   }
                                 },
                               ),
@@ -356,19 +272,19 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
 
                   const SizedBox(height: 16),
 
-                  // ── Detail card ───────────────────────────────────────────
+                  // ── Detail card ──────────────────────────────────────────
                   if (selected != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: _DetailCard(
-                        artisan: selected,
+                        location: selected,
                         onDirections: () => _openDirections(selected),
                       ),
                     ),
 
                   const SizedBox(height: 20),
 
-                  // ── List header ───────────────────────────────────────────
+                  // ── List header ──────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
@@ -378,36 +294,42 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
                               ? 'SORTED BY DISTANCE'
                               : 'SORTED BY NAME',
                           style: TextStyle(
-                              fontSize: 11, letterSpacing: 2.2, color: _kSubText),
+                              fontSize: 11,
+                              letterSpacing: 2.2,
+                              color: kMapSubText),
                         ),
                         const Spacer(),
-                        Text('${artisans.length} artisans',
-                            style: TextStyle(fontSize: 11, color: _kSubText)),
+                        Text('${list.length} found',
+                            style: TextStyle(
+                                fontSize: 11, color: kMapSubText)),
                       ],
                     ),
                   ),
                   const SizedBox(height: 10),
 
-                  // ── List ──────────────────────────────────────────────────
-                  if (artisans.isEmpty)
+                  // ── List ─────────────────────────────────────────────────
+                  if (list.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(32),
                       child: Center(
-                        child: Text('No artisans match your search.',
-                            style: TextStyle(color: _kSubText)),
+                        child: Text('Nothing matches your search.',
+                            style:
+                                TextStyle(color: kMapSubText)),
                       ),
                     )
                   else
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: artisans.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (_, i) => _ArtisanListTile(
-                        artisan: artisans[i],
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: list.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (_, i) => _LocationTile(
+                        location: list[i],
                         isSelected: i == safeIdx,
-                        onTap: () => _selectArtisan(i, artisans[i]),
+                        onTap: () => _selectLocation(i, list[i]),
                       ),
                     ),
 
@@ -423,22 +345,80 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
 
   @override
   void dispose() {
-    _mapController?.dispose();
-    _searchController.dispose();
+    _mapCtrl?.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 }
 
-// ─── Detail Card ───────────────────────────────────────────────────────────────
+// ─── Filter chip ───────────────────────────────────────────────────────────────
 
-class _DetailCard extends StatelessWidget {
-  final ArtisanLocation artisan;
-  final VoidCallback onDirections;
+class _Chip extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final bool active;
+  final Color color;
+  final VoidCallback onTap;
 
-  const _DetailCard({required this.artisan, required this.onDirections});
+  const _Chip({
+    required this.label,
+    this.icon,
+    required this.active,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? color : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 14,
+                  color: active ? Colors.white : color),
+              const SizedBox(width: 4),
+            ],
+            Text(label,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: active ? Colors.white : kMapText)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Detail card ───────────────────────────────────────────────────────────────
+
+class _DetailCard extends StatelessWidget {
+  final ArtisanLocation location;
+  final VoidCallback onDirections;
+
+  const _DetailCard({required this.location, required this.onDirections});
+
+  @override
+  Widget build(BuildContext context) {
+    final isPickup = location.pinType == PinType.pickup;
+    final accent   = isPickup ? kMapPickup : kMapPin;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -454,111 +434,139 @@ class _DetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cover photo or placeholder
-          if (artisan.coverPhotoUrl != null)
+          // Cover photo
+          if (location.coverPhotoUrl != null)
             Image.network(
-              artisan.coverPhotoUrl!,
-              height: 140,
+              location.coverPhotoUrl!,
+              height: 130,
               width: double.infinity,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             )
           else
             Container(
-              height: 80,
-              color: _kTag,
+              height: 56,
+              color: isPickup
+                  ? kMapPickup.withOpacity(0.15)
+                  : kMapTag,
               child: Center(
-                child: Icon(Icons.store_outlined, color: _kPin, size: 36),
+                child: Icon(
+                  isPickup
+                      ? Icons.local_shipping_outlined
+                      : Icons.store_outlined,
+                  color: accent,
+                  size: 28,
+                ),
               ),
             ),
 
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar + name row
+                // Type badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    location.typeLabel,
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Name + distance
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (artisan.profilePhotoUrl != null)
-                      ClipOval(
-                        child: Image.network(
-                          artisan.profilePhotoUrl!,
-                          width: 44, height: 44,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _avatarPlaceholder(),
+                    if (location.profilePhotoUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: ClipOval(
+                          child: Image.network(
+                            location.profilePhotoUrl!,
+                            width: 42, height: 42,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _avatar(accent),
+                          ),
                         ),
-                      )
-                    else
-                      _avatarPlaceholder(),
-                    const SizedBox(width: 12),
+                      ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            artisan.name,
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: _kText,
-                                fontFamily: 'Georgia'),
-                          ),
-                          if (artisan.region != null)
-                            Text(artisan.region!,
+                          Text(location.name,
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: kMapText,
+                                  fontFamily: 'Georgia')),
+                          if (location.region != null)
+                            Text(location.region!,
                                 style: TextStyle(
-                                    fontSize: 12, color: _kPin,
+                                    fontSize: 12,
+                                    color: accent,
                                     fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ),
-                    if (artisan.distanceKm != null)
+                    if (location.distanceKm != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _kTag,
+                          color: kMapTag,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${artisan.distanceKm!.toStringAsFixed(1)} km',
+                          '${location.distanceKm!.toStringAsFixed(1)} km',
                           style: TextStyle(
                               fontSize: 12,
-                              color: _kPin,
-                              fontWeight: FontWeight.w600),
+                              color: accent,
+                              fontWeight: FontWeight.w700),
                         ),
                       ),
                   ],
                 ),
 
-                // Heritage story
-                if (artisan.heritageStory != null &&
-                    artisan.heritageStory!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                if (location.heritageStory != null &&
+                    location.heritageStory!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
                   Text(
-                    artisan.heritageStory!,
-                    maxLines: 3,
+                    location.heritageStory!,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 13,
-                        color: _kSubText,
+                        color: kMapSubText,
                         height: 1.5),
                   ),
                 ],
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Directions button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: onDirections,
-                    icon: const Icon(Icons.directions_outlined, size: 18),
+                    icon: const Icon(Icons.directions_outlined, size: 16),
                     label: const Text('Get Directions'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _kPin,
+                      backgroundColor: accent,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 11),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       textStyle: const TextStyle(
@@ -574,40 +582,44 @@ class _DetailCard extends StatelessWidget {
     );
   }
 
-  Widget _avatarPlaceholder() => Container(
-        width: 44, height: 44,
-        decoration: BoxDecoration(
-            color: _kTag, shape: BoxShape.circle),
-        child: Icon(Icons.person_outline, color: _kPin, size: 22),
+  Widget _avatar(Color color) => Container(
+        width: 42, height: 42,
+        decoration:
+            BoxDecoration(color: kMapTag, shape: BoxShape.circle),
+        child: Icon(Icons.store_outlined, color: color, size: 20),
       );
 }
 
-// ─── List Tile ─────────────────────────────────────────────────────────────────
+// ─── Location list tile ────────────────────────────────────────────────────────
 
-class _ArtisanListTile extends StatelessWidget {
-  final ArtisanLocation artisan;
+class _LocationTile extends StatelessWidget {
+  final ArtisanLocation location;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _ArtisanListTile({
-    required this.artisan,
+  const _LocationTile({
+    required this.location,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isPickup = location.pinType == PinType.pickup;
+    final accent   = isPickup ? kMapPickup : kMapPin;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? _kSelected : Colors.transparent,
-            width: isSelected ? 1.5 : 1,
+            color: isSelected ? accent : Colors.transparent,
+            width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
@@ -618,44 +630,76 @@ class _ArtisanListTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Avatar
+            // Avatar or icon
             ClipOval(
-              child: artisan.profilePhotoUrl != null
+              child: location.profilePhotoUrl != null
                   ? Image.network(
-                      artisan.profilePhotoUrl!,
-                      width: 40, height: 40,
+                      location.profilePhotoUrl!,
+                      width: 44, height: 44,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
+                      errorBuilder: (_, __, ___) =>
+                          _iconAvatar(accent, isPickup),
                     )
-                  : _placeholder(),
+                  : _iconAvatar(accent, isPickup),
             ),
             const SizedBox(width: 12),
+
+            // Name + region
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(artisan.name,
+                  Text(location.name,
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: _kText)),
+                          color: kMapText)),
                   const SizedBox(height: 2),
-                  Text(artisan.region ?? '—',
-                      style: TextStyle(fontSize: 12, color: _kSubText)),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: accent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          isPickup ? 'Pickup' : 'Workshop',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: accent,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(location.region ?? '',
+                            style: TextStyle(
+                                fontSize: 12, color: kMapSubText),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            if (artisan.distanceKm != null)
+
+            // Distance badge
+            if (location.distanceKm != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _kTag,
+                  color: kMapTag,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${artisan.distanceKm!.toStringAsFixed(1)} km',
+                  '${location.distanceKm!.toStringAsFixed(1)} km',
                   style: TextStyle(
-                      fontSize: 12, color: _kPin, fontWeight: FontWeight.w600),
+                      fontSize: 12,
+                      color: accent,
+                      fontWeight: FontWeight.w700),
                 ),
               ),
           ],
@@ -664,83 +708,45 @@ class _ArtisanListTile extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() => Container(
-        width: 40, height: 40,
-        color: _kTag,
-        child: Icon(Icons.person_outline, color: _kPin, size: 20),
+  Widget _iconAvatar(Color color, bool isPickup) => Container(
+        width: 44, height: 44,
+        color: kMapTag,
+        child: Icon(
+          isPickup
+              ? Icons.local_shipping_outlined
+              : Icons.store_outlined,
+          color: color,
+          size: 20,
+        ),
       );
 }
 
-// ─── Web Map Placeholder ───────────────────────────────────────────────────────
-// google_maps_flutter doesn't support web. On web we show a styled card
-// with quick-links to open each artisan in Google Maps.
+// ─── Web mini-map note ────────────────────────────────────────────────────────
 
-class _WebMapPlaceholder extends StatelessWidget {
-  final List<ArtisanLocation> artisans;
-  const _WebMapPlaceholder({required this.artisans});
-
-  Future<void> _openMap(ArtisanLocation a) async {
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}',
-    );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
+class _WebMapNote extends StatelessWidget {
+  final List<ArtisanLocation> locations;
+  const _WebMapNote({required this.locations});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: _kTag,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.map_outlined, size: 36, color: _kPin),
-          const SizedBox(height: 8),
-          Text(
-            'Interactive map available on mobile',
-            style: TextStyle(
-                fontSize: 13, color: _kText, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Open an artisan directly in Google Maps:',
-            style: TextStyle(fontSize: 12, color: _kSubText),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: artisans.take(5).map((a) {
-              return GestureDetector(
-                onTap: () => _openMap(a),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _kPin.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.open_in_new, size: 12, color: _kPin),
-                      const SizedBox(width: 4),
-                      Text(a.name,
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: _kPin,
-                              fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
+      color: kMapTag,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.map_outlined, color: kMapPin, size: 32),
+            const SizedBox(height: 6),
+            Text('Map available on Android / iOS',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: kMapText,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text('${locations.length} locations listed below',
+                style: TextStyle(fontSize: 12, color: kMapSubText)),
+          ],
+        ),
       ),
     );
   }
