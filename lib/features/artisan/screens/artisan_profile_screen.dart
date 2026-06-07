@@ -6,6 +6,7 @@ import '../providers/artisan_provider.dart';
 import '../widgets/artisan_info_card.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../favorites/providers/favorites_provider.dart';
 
 class ArtisanProfileScreen extends ConsumerWidget {
   final String artisanId;
@@ -16,7 +17,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final artisanAsync = ref.watch(artisanProfileProvider(artisanId));
     final scaffoldBgColor = Theme.of(context).scaffoldBackgroundColor;
-    
+
     // Calculates a 4:3 aspect ratio for the hero image
     final heroHeight = MediaQuery.of(context).size.width * (3 / 4);
 
@@ -28,6 +29,9 @@ class ArtisanProfileScreen extends ConsumerWidget {
         data: (data) {
           final a = data.artisan;
           final works = data.works;
+
+          final favsState = ref.watch(favoritesProvider);
+          final bool isFav = favsState.artisans.contains(a['id'].toString());
 
           return CustomScrollView(
             slivers: [
@@ -47,6 +51,25 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.black.withOpacity(0.4),
+                      child: IconButton(
+                        icon: Icon(
+                          isFav ? Icons.favorite : Icons.favorite_border,
+                          color: isFav ? const Color(0xFFD4AF37) : Colors.white,
+                        ),
+                        onPressed: () {
+                          ref
+                              .read(favoritesProvider.notifier)
+                              .toggleArtisan(a['id'].toString());
+                        },
+                      ),
+                    ),
+                  ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   stretchModes: const [StretchMode.zoomBackground],
                   background: Stack(
@@ -66,7 +89,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // THE OVERLAP TRICK: This draws the top rounded corners of the profile card 
+                // THE OVERLAP TRICK: This draws the top rounded corners of the profile card
                 // directly on top of the bottom edge of the image
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(32),
@@ -74,7 +97,9 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     height: 32,
                     decoration: BoxDecoration(
                       color: scaffoldBgColor,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
                     ),
                   ),
                 ),
