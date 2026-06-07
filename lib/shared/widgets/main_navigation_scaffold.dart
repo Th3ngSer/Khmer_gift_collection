@@ -35,7 +35,7 @@ class MainNavigationScaffold extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.location_on_outlined),
             selectedIcon: Icon(Icons.location_on, color: Color(0xFFD4AF37)),
-            label: 'Nearby',
+            label: 'Map',
           ),
           NavigationDestination(
             icon: Icon(Icons.favorite_outline),
