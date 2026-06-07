@@ -81,11 +81,6 @@ final goRouter = GoRouter(
       },
     ),
 
-    GoRoute(
-      path: '/favorites',
-      builder: (context, state) => const FavoritesScreen(),
-    ),
-
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return MainNavigationScaffold(navigationShell: navigationShell);
@@ -114,8 +109,7 @@ final goRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/favorites',
-              builder: (context, state) =>
-                  const PlaceholderScreen(title: 'Favorites'),
+              builder: (context, state) => const FavoritesScreen(),
             ),
           ],
         ),
