@@ -162,7 +162,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (all) {
           final visible = _visibleLocations(all, userPos);
-          final nearbyList = _nearbyMode ? visible : [];
+          final nearbyList = _nearbyMode ? visible : <ArtisanLocation>[];
 
           return Stack(
             children: [
@@ -353,7 +353,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 child: SlideTransition(
                   position: _panelSlide,
                   child: _NearbyPanel(
-                    locations: nearbyList as List<ArtisanLocation>,
+                    locations: nearbyList,
                     onTap: (a) {
                       _mapCtrl?.animateCamera(
                           CameraUpdate.newLatLngZoom(a.latLng, 14.0));
