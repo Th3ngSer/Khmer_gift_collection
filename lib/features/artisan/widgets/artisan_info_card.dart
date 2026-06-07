@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/khmer_divider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../favorites/providers/favorites_provider.dart';
 
-class ArtisanInfoCard extends StatefulWidget {
+class ArtisanInfoCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> artisan;
   final int worksCount;
 
-  const ArtisanInfoCard({super.key, required this.artisan, required this.worksCount});
+  const ArtisanInfoCard({
+    super.key,
+    required this.artisan,
+    required this.worksCount,
+  });
 
   @override
-  State<ArtisanInfoCard> createState() => _ArtisanInfoCardState();
+  ConsumerState<ArtisanInfoCard> createState() => _ArtisanInfoCardState();
 }
 
-class _ArtisanInfoCardState extends State<ArtisanInfoCard> {
-  bool _isFav = false;
-
+class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
   @override
   Widget build(BuildContext context) {
     const goldColor = Color(0xFFD4AF37);
     final theme = Theme.of(context);
     final a = widget.artisan;
+    final favsState = ref.watch(favoritesProvider);
+    final bool isFav = favsState.artisans.contains(a['id'].toString());
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -45,26 +51,42 @@ class _ArtisanInfoCardState extends State<ArtisanInfoCard> {
                   children: [
                     Text(
                       (a['region'] ?? '').toString().toUpperCase(),
-                      style: const TextStyle(fontSize: 10, letterSpacing: 2.0, color: goldColor),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 2.0,
+                        color: goldColor,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       a['name'],
-                      style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold, height: 1.1),
+                      style: const TextStyle(
+                        fontFamily: 'serif',
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${a['craft']} · Est. ${a['established']}',
-                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                onPressed: () => setState(() => _isFav = !_isFav),
+                onPressed: () {
+                  ref
+                      .read(favoritesProvider.notifier)
+                      .toggleArtisan(a['id'].toString());
+                },
                 icon: Icon(
-                  _isFav ? Icons.favorite : Icons.favorite_border,
-                  color: _isFav ? theme.colorScheme.primary : theme.iconTheme.color,
+                  isFav ? Icons.favorite : Icons.favorite_border,
+                  color: isFav ? goldColor : theme.iconTheme.color,
                 ),
                 style: IconButton.styleFrom(
                   backgroundColor: theme.dividerColor.withOpacity(0.1),
@@ -73,7 +95,7 @@ class _ArtisanInfoCardState extends State<ArtisanInfoCard> {
               ),
             ],
           ),
-          
+
           // Row 2: Metrics
           const SizedBox(height: 16),
           Row(
@@ -82,11 +104,17 @@ class _ArtisanInfoCardState extends State<ArtisanInfoCard> {
               const SizedBox(width: 4),
               Text(
                 a['rating'].toStringAsFixed(1),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               Text(
                 ' · ${widget.worksCount} works',
-                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6), fontSize: 14),
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -98,18 +126,31 @@ class _ArtisanInfoCardState extends State<ArtisanInfoCard> {
           ),
           Text(
             a['bio'],
-            style: const TextStyle(fontFamily: 'serif', fontSize: 18, fontWeight: FontWeight.w500, height: 1.3),
+            style: const TextStyle(
+              fontFamily: 'serif',
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              height: 1.3,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             a['story'],
-            style: TextStyle(fontSize: 14, height: 1.6, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+            ),
           ),
-          
+
           const SizedBox(height: 28),
           const Text(
             'From the workshop',
-            style: TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontFamily: 'serif',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 16),
         ],

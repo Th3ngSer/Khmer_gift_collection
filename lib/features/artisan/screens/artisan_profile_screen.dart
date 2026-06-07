@@ -51,25 +51,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                actions: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black.withOpacity(0.4),
-                      child: IconButton(
-                        icon: Icon(
-                          isFav ? Icons.favorite : Icons.favorite_border,
-                          color: isFav ? const Color(0xFFD4AF37) : Colors.white,
-                        ),
-                        onPressed: () {
-                          ref
-                              .read(favoritesProvider.notifier)
-                              .toggleArtisan(a['id'].toString());
-                        },
-                      ),
-                    ),
-                  ),
-                ],
+
                 flexibleSpace: FlexibleSpaceBar(
                   stretchModes: const [StretchMode.zoomBackground],
                   background: Stack(
