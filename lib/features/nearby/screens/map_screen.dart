@@ -1,14 +1,3 @@
-// lib/features/nearby/screens/map_screen.dart
-//
-// Screen 6 — Unified Map + Nearby
-// ✅ Full-screen Google Map: all artisan pins (red) + pickup points (green)
-// ✅ Tap pin → bottom sheet (photo, story, distance, directions, view profile)
-// ✅ Filter chips: All / Workshops / Pickup Points
-// ✅ "Nearby" toggle → shows only pins within 50 km + zooms in
-// ✅ Recenter FAB + Legend overlay
-// ✅ Nearby list panel slides up when toggle is active
-// ✅ Web fallback
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

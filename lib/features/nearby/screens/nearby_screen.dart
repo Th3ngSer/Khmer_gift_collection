@@ -1,14 +1,3 @@
-// lib/features/nearby/screens/nearby_screen.dart
-//
-// Screen 7 — Nearby
-// ✅ Mini-map on top (mobile only) with all artisan + pickup pins
-// ✅ Tap pin → scrolls to that artisan + highlights card
-// ✅ List sorted by real GPS distance
-// ✅ Search bar (name + region)
-// ✅ Filter chips: All / Workshops / Pickup Points
-// ✅ Detail card with photo, heritage story, distance badge
-// ✅ Directions button
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
