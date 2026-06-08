@@ -175,7 +175,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   ),
                                 ),
                                 loading: () => const SizedBox(),
-                                error: (_, _) => const SizedBox(),
+                                error: (err, stack) => const SizedBox(),
                               ),
                             ],
                           ),
