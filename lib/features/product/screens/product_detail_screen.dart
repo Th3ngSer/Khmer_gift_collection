@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../providers/product_detail_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../home/providers/home_provider.dart';
+
+import '../providers/product_detail_provider.dart';
 import '../providers/review_provider.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../core/providers/locale_provider.dart';
@@ -16,7 +15,6 @@ import '../../../shared/widgets/loading_shimmer.dart';
 
 import '../widgets/product_hero_header.dart';
 import '../widgets/artisan_card.dart';
-import '../widgets/product_reviews_list.dart';
 import '../widgets/product_bottom_cta.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
@@ -25,8 +23,7 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
   const ProductDetailScreen({super.key, required this.productId});
 
   @override
-  ConsumerState<ProductDetailScreen> createState() =>
-      _ProductDetailScreenState();
+  ConsumerState<ProductDetailScreen> createState() => _ProductDetailScreenState();
 }
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
@@ -49,55 +46,44 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   void _toggleFavorite() {
     setState(() => _isFav = !_isFav);
   }
-  bool _isFav = false;
 
   @override
   Widget build(BuildContext context) {
-    final homeDataAsync = ref.watch(homeFeedProvider);
+    final productAsync = ref.watch(productDetailProvider(widget.productId));
     final reviewsAsync = ref.watch(productReviewsProvider(widget.productId));
     final locale = ref.watch(localeProvider).languageCode;
-    final productAsync = ref.watch(productDetailProvider(widget.productId));
     const goldColor = Color(0xFFD4AF37);
 
     String t(String key) => Translations.translate(key, locale);
     final heroHeight = MediaQuery.of(context).size.width * (5 / 4);
-
-    final textColor = ref.watch(themeProvider) == ThemeMode.dark ? Colors.white : AppTheme.deepEarth;
+    final isDark = ref.watch(themeProvider) == ThemeMode.dark;
+    final textColor = isDark ? Colors.white : AppTheme.deepEarth;
     final cardBg = Theme.of(context).cardColor;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: ProductBottomCTA(
-        item: productAsync.value?.product,
-        isFav: _isFav,
-        onFavPressed: _toggleFavorite,
+    return productAsync.when(
+      loading: () => const Scaffold(body: LoadingShimmer()),
+      error: (err, stack) => Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text('Error: $err')),
       ),
-      body: productAsync.when(
-        loading: () => const Scaffold(body: LoadingShimmer()),
-      bottomNavigationBar: _buildBottomCTA(context, goldColor, t),
+      data: (data) {
+        final item = data.product;
+        final artisan = data.artisan;
+        final rating = item['rating'] ?? 5.0;
+        final tags = [
+          'Handmade',
+          item['budget_bracket'] ?? 'Premium',
+          item['material_focus'] ?? 'Organic',
+        ];
 
-      body: homeDataAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: goldColor)),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-        data: (data) {
-          final item = data.product;
-          final artisan = data.artisan;
-          final reviews = data.reviews;
-
-          final rating = item['rating'] ?? 5.0;
-          final tags = [
-            'Handmade',
-            item['budget_bracket'] ?? 'Premium',
-            item['material_focus'] ?? 'Organic',
-          ];
-          if (item == null) {
-            return Center(child: Text(t('product_not_found')));
-          }
-
-          final artisan = data.artisans.isNotEmpty ? data.artisans.first : null;
-          final rating = item['rating'] ?? 4.8;
-
-          return CustomScrollView(
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          bottomNavigationBar: ProductBottomCTA(
+            item: item,
+            isFav: _isFav,
+            onFavPressed: _toggleFavorite,
+          ),
+          body: CustomScrollView(
             slivers: [
               SliverAppBar(
                 expandedHeight: 400,
@@ -107,7 +93,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 leading: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: CircleAvatar(
-                    backgroundColor: Colors.black.withOpacity(0.5),
+                    backgroundColor: Colors.black.withAlpha(128),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => context.pop(),
@@ -118,7 +104,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: CircleAvatar(
-                      backgroundColor: Colors.black.withOpacity(0.5),
+                      backgroundColor: Colors.black.withAlpha(128),
                       child: IconButton(
                         icon: const Icon(Icons.share, color: Colors.white),
                         onPressed: () {},
@@ -153,93 +139,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 currentImageIndex: _currentImageIndex,
                 onPageChanged: (index) => setState(() => _currentImageIndex = index),
               ),
+
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Category Label
-                      Text(
-                        (item['category'] ?? '').toString().toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          letterSpacing: 2.0,
-                          color: goldColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Title & Favorite Heart Row
+                      // Category & Rating Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              item['name'] ?? '',
-                              style: const TextStyle(
-                                fontFamily: 'serif',
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                height: 1.1,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _toggleFavorite,
-                            icon: Icon(
-                              _isFav ? Icons.favorite : Icons.favorite_border,
-                              color: _isFav ? goldColor : Theme.of(context).iconTheme.color,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: Theme.of(context).dividerColor.withOpacity(0.1),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Tagline
-                      const SizedBox(height: 8),
-                      Text(
-                        item['tagline'] ?? '',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
-
-                      // Price & Rating
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Text(
-                            '\$${item['price']}',
-                            style: const TextStyle(
-                              fontFamily: 'serif',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Spacer(),
-                          const Icon(Icons.star, color: goldColor, size: 18),
-                          const SizedBox(width: 4),
-                          Text(
-                            rating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            ' (${reviews.length} reviews)',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              fontSize: 14,
-                            ),
                           Text(
                             (item['category'] ?? '').toString().toUpperCase(),
-                            style: const TextStyle(fontSize: 10, letterSpacing: 2.0, color: goldColor),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              letterSpacing: 2.0,
+                              color: goldColor,
+                            ),
                           ),
                           Row(
                             children: [
@@ -252,24 +169,41 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               reviewsAsync.when(
                                 data: (reviews) => Text(
                                   ' (${reviews.length} ${t('reviews')})',
-                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withAlpha(150), fontSize: 12),
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                                    fontSize: 12,
+                                  ),
                                 ),
                                 loading: () => const SizedBox(),
-                                error: (_, __) => const SizedBox(),
+                                error: (_, _) => const SizedBox(),
                               ),
                             ],
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
 
+                      // Title
                       Text(
                         item['name'] ?? '',
-                        style: const TextStyle(fontFamily: 'serif', fontSize: 28, fontWeight: FontWeight.bold, height: 1.1),
+                        style: const TextStyle(
+                          fontFamily: 'serif',
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          height: 1.1,
+                        ),
                       ),
                       const SizedBox(height: 8),
+
+                      // Price
                       Text(
                         '\$${item['price']}',
-                        style: const TextStyle(fontFamily: 'serif', fontSize: 22, fontWeight: FontWeight.w600, color: goldColor),
+                        style: const TextStyle(
+                          fontFamily: 'serif',
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: goldColor,
+                        ),
                       ),
                       
                       const SizedBox(height: 24),
@@ -277,92 +211,54 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(height: 24),
 
                       // The Story
-                      const Text(
-                        'The story',
-                        style: TextStyle(
+                      Text(
+                        t('the_story'),
+                        style: const TextStyle(
                           fontFamily: 'serif',
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
-                      Text(
-                        t('the_story'),
-                        style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        item['story'] ?? 'Crafted with care and precision, this piece embodies the rich cultural heritage and generational techniques of local artisans.',
-                        style: TextStyle(fontSize: 15, height: 1.6, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8)),
-                        item['story'] ?? '',
+                        item['story'] ?? 'Crafted with care and precision.',
                         style: TextStyle(
                           fontSize: 15,
                           height: 1.6,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                          color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
                         ),
                       ),
-                      const SizedBox(height: 20),
-
-                      // Maker / Artisan Card
-                      if (artisan != null) ...[
-                        ArtisanCard(artisan: artisan, goldColor: goldColor),
-                      ],
-
-                      // Availability Note
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Available at Riverside Atelier & 2 more',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Tags
-                      const SizedBox(height: 20),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: tags
-                            .map(
-                              (tag) => Chip(
-                                label: Text(tag, style: const TextStyle(fontSize: 12)),
-                                backgroundColor: Theme.of(context).cardColor,
-                                side: BorderSide(color: Theme.of(context).dividerColor),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-
-                      // Embedded Reviews Section
                       const SizedBox(height: 32),
 
+                      // Maker Section
                       if (artisan != null) ...[
                         Text(
                           t('meet_the_maker'),
-                          style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
-                      const Text(
-                        'Reviews',
-                        style: TextStyle(
-                          fontFamily: 'serif',
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                          style: const TextStyle(
+                            fontFamily: 'serif',
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 12),
-                        _buildArtisanCard(artisan),
+                        ArtisanCard(artisan: artisan, goldColor: goldColor),
                         const SizedBox(height: 32),
                       ],
+
+                      // Tags
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: tags.map((tag) => Chip(
+                          label: Text(tag, style: const TextStyle(fontSize: 12)),
+                          backgroundColor: Theme.of(context).cardColor,
+                          side: BorderSide(color: Theme.of(context).dividerColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        )).toList(),
+                      ),
+                      const SizedBox(height: 32),
 
                       // --- Reviews Section ---
                       _buildReviewsHeader(t, reviewsAsync, textColor, cardBg),
@@ -378,49 +274,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 ),
               ),
             ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildArtisanCard(Map<String, dynamic> artisan) {
-    return GestureDetector(
-      onTap: () => context.push('/artisans/${artisan['id']}', extra: artisan),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundImage: NetworkImage(artisan['avatar'] ?? artisan['cover'] ?? ''),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    artisan['name'] ?? '',
-                    style: const TextStyle(fontFamily: 'serif', fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${artisan['craft']} · ${artisan['region']}',
-                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -550,9 +406,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       await ref.read(reviewRepositoryProvider).submitReview(newReview);
                       ref.invalidate(productReviewsProvider(widget.productId));
 
-                      if (mounted) Navigator.pop(context);
-
                       if (mounted) {
+                        Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Row(
@@ -616,7 +471,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Text(t('no_reviews'), style: TextStyle(color: Colors.black.withOpacity(0.4))),
+          child: Text(t('no_reviews'), style: TextStyle(color: Colors.black.withAlpha(100))),
         ),
       );
     }
@@ -646,132 +501,121 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
   Widget _buildReviewItem(Review review, String Function(String) t) {
     final user = Supabase.instance.client.auth.currentUser;
-    // For demo/mock: allow deleting if customerId matches OR if it starts with 'test_user'
     final bool canDelete = review.customerId == user?.id || review.customerId.startsWith('test_user');
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.gold.withAlpha(40), width: 1),
-                ),
-                child: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppTheme.gold.withAlpha(10),
-                  backgroundImage: review.userAvatar != null ? NetworkImage(review.userAvatar!) : null,
-                  child: review.userAvatar == null
-                      ? Text(review.userName[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold))
-                      : null,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.gold.withAlpha(40), width: 1),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      review.userName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    if (review.isVerified)
-                      Row(
-                        children: [
-                          const Icon(Icons.verified, color: Colors.blue, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            t('verified_purchase'),
-                            style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: AppTheme.gold.withAlpha(10),
+                backgroundImage: review.userAvatar != null ? NetworkImage(review.userAvatar!) : null,
+                child: review.userAvatar == null
+                    ? Text(review.userName[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold))
+                    : null,
               ),
-              if (canDelete)
-                IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(150), size: 20),
-                  onPressed: () => _showDeleteConfirmation(review),
-                )
-              else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Row(
-                      children: List.generate(5, (index) {
-                        return Icon(
-                          index < review.rating ? Icons.star : Icons.star_border,
-                          size: 14,
-                          color: AppTheme.gold,
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withAlpha(100), fontSize: 11),
-                    ),
-                  ],
-                ),
-                      ),
-                      const SizedBox(height: 16),
-                      ProductReviewsList(reviews: reviews, goldColor: goldColor),
-                    ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    review.userName,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
+                  if (review.isVerified)
+                    Row(
+                      children: [
+                        const Icon(Icons.verified, color: Colors.blue, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          t('verified_purchase'),
+                          style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+            if (canDelete)
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(150), size: 20),
+                onPressed: () => _showDeleteConfirmation(review),
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    children: List.generate(5, (index) {
+                      return Icon(
+                        index < review.rating ? Icons.star : Icons.star_border,
+                        size: 14,
+                        color: AppTheme.gold,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withAlpha(100), fontSize: 11),
+                  ),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(20),
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (review.photoUrl != null && review.photoUrl!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      review.photoUrl!,
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              Text(
+                review.reviewText,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
+                  fontStyle: FontStyle.italic,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (review.photoUrl != null && review.photoUrl!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        review.photoUrl!,
-                        height: 120,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                Text(
-                  review.reviewText,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -801,57 +645,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white, elevation: 0),
             child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomCTA(BuildContext context, Color goldColor, String Function(String) t) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () => setState(() => _isFav = !_isFav),
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                border: Border.all(color: _isFav ? goldColor : Theme.of(context).dividerColor),
-                borderRadius: BorderRadius.circular(16),
-                color: _isFav ? goldColor.withAlpha(25) : Colors.transparent,
-              ),
-              child: Icon(
-                _isFav ? Icons.favorite : Icons.favorite_border,
-                color: _isFav ? goldColor : Theme.of(context).iconTheme.color,
-                size: 24,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(t('nav_order_flow'))),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2A1508),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: Text(
-                t('order_now'),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
           ),
         ],
       ),
