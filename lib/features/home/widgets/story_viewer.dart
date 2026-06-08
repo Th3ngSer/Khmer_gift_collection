@@ -15,7 +15,8 @@ class StoryViewer extends StatefulWidget {
   State<StoryViewer> createState() => _StoryViewerState();
 }
 
-class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStateMixin {
+class _StoryViewerState extends State<StoryViewer>
+    with SingleTickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _animController;
   late int _currentIndex;
@@ -25,7 +26,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
-    
+
     // The 4500ms auto-progression timer
     _animController = AnimationController(
       vsync: this,
@@ -85,7 +86,8 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
           // 1. The Swipable Images & Text
           PageView.builder(
             controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(), // Disable drag to rely on tap zones
+            physics:
+                const NeverScrollableScrollPhysics(), // Disable drag to rely on tap zones
             itemCount: widget.stories.length,
             itemBuilder: (context, index) {
               final story = widget.stories[index];
@@ -93,14 +95,17 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                 fit: StackFit.expand,
                 children: [
                   Image.network(story['image'], fit: BoxFit.cover),
-                  
+
                   // Dark Gradient Overlay at bottom for text readability
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.center,
-                        colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+                        colors: [
+                          Colors.black.withOpacity(0.9),
+                          Colors.transparent,
+                        ],
                       ),
                     ),
                   ),
@@ -125,26 +130,46 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                         const SizedBox(height: 4),
                         Text(
                           story['subtitle'],
-                          style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.8)),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           story['caption'],
-                          style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), height: 1.4),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.9),
+                            height: 1.4,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () {
-                            context.pop();
-                            // Logic to navigate to details would go here
+                            final String? destination = story['linkTo'];
+                            context.pop(); // Closes the story overlay modal
+                            if (destination != null) {
+                              context.push(
+                                destination,
+                              ); // Routes straight to the artisan profile or collection
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                           ),
-                          child: const Text('Explore', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Explore',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),
@@ -155,12 +180,25 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
           ),
 
           // 2. The Invisible Tap Zones (Left 30% = Back, Right 70% = Next)
-          Positioned.fill(
-            child: Row(
-              children: [
-                Expanded(flex: 3, child: GestureDetector(onTap: _previousStory)),
-                Expanded(flex: 7, child: GestureDetector(onTap: _nextStory)),
-              ],
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: MediaQuery.of(context).size.width * 0.33,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _previousStory,
+            ),
+          ),
+          // Right Edge Tap Zone (React: w-1/3 absolute right-0)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: MediaQuery.of(context).size.width * 0.33,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _nextStory,
             ),
           ),
 
@@ -181,12 +219,15 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                         builder: (context, child) {
                           double progress = 0.0;
                           if (index < _currentIndex) progress = 1.0;
-                          if (index == _currentIndex) progress = _animController.value;
+                          if (index == _currentIndex)
+                            progress = _animController.value;
 
                           return LinearProgressIndicator(
                             value: progress,
                             backgroundColor: Colors.white.withOpacity(0.3),
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                             minHeight: 2,
                           );
                         },

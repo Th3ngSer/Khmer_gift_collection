@@ -8,6 +8,7 @@ import '../../../shared/widgets/product_card.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/constants/translations.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/khmer_divider.dart'; // Added import for custom divider
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,7 +18,7 @@ class HomeScreen extends ConsumerWidget {
     final homeData = ref.watch(homeFeedProvider);
     final locale = ref.watch(localeProvider).languageCode;
     const goldColor = Color(0xFFD4AF37);
-    
+
     String t(String key) => Translations.translate(key, locale);
 
     return Scaffold(
@@ -32,7 +33,7 @@ class HomeScreen extends ConsumerWidget {
           final recommended = data.items.reversed.take(4).toList();
           final stories = [
             ...data.artisans.map((a) => {
-              'image': a['cover'] ?? '',
+              'image': a['story_post_image'],
               'title': a['name'] ?? '',
               'subtitle': '${a['craft']} · ${a['region']}',
               'caption': a['story'] ?? '',
@@ -46,6 +47,7 @@ class HomeScreen extends ConsumerWidget {
               'caption': p['cta'] ?? '',
               'avatar': p['image'] ?? '',
               'label': p['badge'] ?? '',
+              'linkCollectionId': p['linkCollectionId'],
             }),
           ];
 
@@ -106,13 +108,15 @@ class HomeScreen extends ConsumerWidget {
 
                     // 5. Featured Collections Carousel
                     SectionHeader(
-                      title: t('featured_collections'), 
+                      title: t('featured_collections'),
                       subtitle: t('curated_season'),
                     ),
                     _buildCollectionsCarousel(data.collections),
 
                     // --- NEW: Workshop Reels CTA ---
                     _buildWorkshopReelsCTA(context, t),
+                    const SectionHeader(title: 'Featured collections', subtitle: 'Curated this season'),
+                    _buildCollectionsCarousel(context, data.collections),
                   ],
                 ),
               ),
@@ -120,7 +124,7 @@ class HomeScreen extends ConsumerWidget {
               // 6. Trending Grid
               SliverToBoxAdapter(
                 child: SectionHeader(
-                  title: t('trending_now'), 
+                  title: t('trending_now'),
                   subtitle: t('loved_week'),
                 ),
               ),
@@ -131,14 +135,16 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 7. Artisan Spotlight
+                    const SectionHeader(title: 'Meet the makers', subtitle: 'Stories from the workshop'),
+                    _buildArtisanCarousel(context, data.artisans),
                     SectionHeader(
-                      title: t('meet_makers'), 
+                      title: t('meet_makers'),
                       subtitle: t('stories_workshop'),
                     ),
                     _buildArtisanCarousel(data.artisans),
 
                     // 8. Promo Banner
-                    if (data.promotions.isNotEmpty) _buildPromoBanner(data.promotions.first),
+                    if (data.promotions.isNotEmpty) _buildPromoBanner(context, data.promotions.first),
                   ],
                 ),
               ),
@@ -156,6 +162,10 @@ class HomeScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       Divider(color: goldColor.withAlpha(76), indent: 140, endIndent: 140),
+                      const SizedBox(
+                        width: 160, // Match React w-40 width logic
+                        child: KhmerDivider(),
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         t('handmade_cambodia'),
@@ -202,16 +212,19 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(3),
+                    padding: const EdgeInsets.all(2), // Reduced to match p-[2px]
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [Color(0xFFD4AF37), Color(0xFF4A2511)],
+                        colors: [Color(0xFF8C2D19), Color(0xFFD4AF37), Color(0xFF8C2D19)], // from-primary via-gold to-primary
                       ),
                     ),
-                    child: CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.white,
+                    child: Container(
+                      padding: const EdgeInsets.all(2), // Inner background gap
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                      ),
                       child: CircleAvatar(
                         radius: 26,
                         backgroundImage: NetworkImage(story['avatar']),
@@ -221,7 +234,10 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     story['label'],
-                    style: const TextStyle(fontSize: 11),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                    ),
                   ),
                 ],
               ),
@@ -285,6 +301,72 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const Icon(Icons.chevron_right, color: Colors.white),
+        child: ClipRRect( // Added to contain the background blur
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Base Gradient Background
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF8C2D19), Color(0xFF6B2213)], // Primary to slightly darker
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4AF37).withOpacity(0.95), // bg-gold/95
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(Icons.auto_awesome, color: Color(0xFF8C2D19)),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Find the perfect gift',
+                            style: TextStyle(
+                              fontFamily: 'serif',
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'A 4-step quiz, curated just for them.',
+                            style: TextStyle(fontSize: 12, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: Colors.white),
+                  ],
+                ),
+              ),
+              // The blurred gold circle (bg-gold/20 blur-2xl)
+              Positioned(
+                right: -24,
+                top: -24,
+                child: Container(
+                  width: 128,
+                  height: 128,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD4AF37).withOpacity(0.2),
+                        blurRadius: 40,
+                        spreadRadius: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -303,7 +385,7 @@ class HomeScreen extends ConsumerWidget {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Chip(
-              label: Text(categories[index], style: const TextStyle(fontSize: 12)),
+              label: Text(categories[index], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
               backgroundColor: Theme.of(context).cardColor,
               side: BorderSide(color: Theme.of(context).dividerColor),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -314,7 +396,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCollectionsCarousel(List<dynamic> collections) {
+  Widget _buildCollectionsCarousel(BuildContext context, List<dynamic> collections) {
     return SizedBox(
       height: 180,
       child: ListView.builder(
@@ -323,49 +405,52 @@ class HomeScreen extends ConsumerWidget {
         itemCount: collections.length,
         itemBuilder: (context, index) {
           final c = collections[index];
-          return Container(
-            width: 280,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              image: DecorationImage(
-                image: NetworkImage(c['cover']),
-                fit: BoxFit.cover,
-              ),
-            ),
+          return GestureDetector(
+            onTap: () => context.push('/collections/${c['id']}'), // Added tap handler
             child: Container(
+              width: 280,
+              margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                image: DecorationImage(
+                  image: NetworkImage(c['cover']),
+                  fit: BoxFit.cover,
                 ),
               ),
-              padding: const EdgeInsets.all(16),
-              alignment: Alignment.bottomLeft,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    (c['subtitle'] ?? '').toString().toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      letterSpacing: 2.0,
-                      color: Color(0xFFD4AF37),
-                    ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black.withOpacity(0.7), Colors.transparent], // Matched React opacity
                   ),
-                  Text(
-                    c['name'],
-                    style: const TextStyle(
-                      fontFamily: 'serif',
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                ),
+                padding: const EdgeInsets.all(16),
+                alignment: Alignment.bottomLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (c['subtitle'] ?? '').toString().toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 2.0,
+                        color: Color(0xFFD4AF37),
+                      ),
                     ),
-                  ),
-                ],
+                    Text(
+                      c['name'],
+                      style: const TextStyle(
+                        fontFamily: 'serif',
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -374,7 +459,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildArtisanCarousel(List<dynamic> artisans) {
+  Widget _buildArtisanCarousel(BuildContext context, List<dynamic> artisans) {
     return SizedBox(
       height: 220,
       child: ListView.builder(
@@ -400,8 +485,8 @@ class HomeScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(24),
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
-                    end: Alignment.center,
-                    colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+                    end: Alignment.topCenter,
+                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
                   ),
                 ),
                 padding: const EdgeInsets.all(12),
@@ -413,7 +498,7 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       (a['region'] ?? '').toString().toUpperCase(),
                       style: const TextStyle(
-                        fontSize: 9,
+                        fontSize: 10, // Tweaked from 9 to match [10px]
                         letterSpacing: 2.0,
                         color: Color(0xFFD4AF37),
                       ),
@@ -425,6 +510,7 @@ class HomeScreen extends ConsumerWidget {
                         fontSize: 16,
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        height: 1.2, // Added leading-tight
                       ),
                     ),
                     Text(
@@ -559,6 +645,67 @@ class HomeScreen extends ConsumerWidget {
                 style: const TextStyle(fontSize: 12, color: Colors.white70),
               ),
             ],
+  Widget _buildPromoBanner(BuildContext context, dynamic promo) {
+    return GestureDetector(
+      onTap: () => context.push('/collections/${promo['linkCollectionId']}'),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        height: 160,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          image: DecorationImage(
+            image: NetworkImage(promo['image']),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              stops: const [0.0, 0.5, 1.0], // Matched via-black/30 spread
+              colors: [
+                Colors.black.withOpacity(0.7),
+                Colors.black.withOpacity(0.3),
+                Colors.transparent
+              ],
+            ),
+          ),
+          padding: const EdgeInsets.all(20),
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.66, // Matched w-2/3
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (promo['badge'] ?? '').toString().toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 2.0,
+                    color: Color(0xFFD4AF37),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  promo['title'],
+                  style: const TextStyle(
+                    fontFamily: 'serif',
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  promo['subtitle'] ?? '',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../shared/widgets/product_card.dart';
@@ -41,9 +42,9 @@ class ArtisanProfileScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     image: DecorationImage(
                       image: NetworkImage(
-                        artisanData['photo_url'] ?? 
-                        artisanData['cover'] ?? 
-                        artisanData['avatar'] ?? 
+                        artisanData['photo_url'] ??
+                        artisanData['cover'] ??
+                        artisanData['avatar'] ??
                         'https://via.placeholder.com/400'
                       ),
                       fit: BoxFit.cover,
@@ -135,7 +136,7 @@ class ArtisanProfileScreen extends StatelessWidget {
                   const Text(
                     "Our Heritage & Story",
                     style: TextStyle(
-                      fontSize: 22, 
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'serif',
                     ),
@@ -144,8 +145,8 @@ class ArtisanProfileScreen extends StatelessWidget {
                   Text(
                     artisanData['story'] ?? 'Dedicated to preserving traditional Khmer techniques and supporting local communities through sustainable craftsmanship.',
                     style: TextStyle(
-                      fontSize: 15, 
-                      height: 1.6, 
+                      fontSize: 15,
+                      height: 1.6,
                       color: Colors.black.withOpacity(0.75),
                     ),
                   ),
@@ -162,7 +163,7 @@ class ArtisanProfileScreen extends StatelessWidget {
                       const Text(
                         "Crafted Masterpieces",
                         style: TextStyle(
-                          fontSize: 22, 
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'serif',
                         ),

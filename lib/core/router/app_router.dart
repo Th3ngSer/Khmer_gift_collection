@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
 import '../../features/home/screens/home_screen.dart';
-import '../../features/nearby/screens/nearby_screen.dart';
+import '../../features/map/screens/map_screen.dart';
+import '../../features/product/screens/explore_screen.dart';
 import '../../features/quiz/screens/quiz_screen.dart';
 import '../../features/quiz/screens/quiz_results_screen.dart';
 import '../../features/product/screens/product_detail_screen.dart';
 import '../../features/chat_reviews/presentation/chat_room_screen.dart';
 import '../../features/chat_reviews/presentation/chat_list_screen.dart';
-import '../../features/profile/screens/artisan_profile_screen.dart';
+import '../../features/artisan/screens/artisan_profile_screen.dart';
 import '../../features/profile/screens/user_profile_screen.dart';
+import '../../features/collection/screens/collection_detail_screen.dart';
+import '../../features/favorites/screens/favorites_screen.dart';
+import '../../features/auth/screens/auth_screen.dart';
 import '../../features/profile/screens/promotions_screen.dart';
 import '../../features/home/screens/workshop_reel_screen.dart';
 
@@ -33,17 +38,25 @@ class PlaceholderScreen extends StatelessWidget {
 }
 
 final goRouter = GoRouter(
-  initialLocation: '/', 
-  routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
+  initialLocation: '/',
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isLoggingIn = state.matchedLocation == '/auth';
+    final isSplash = state.matchedLocation == '/';
 
-    GoRoute(
-      path: '/quiz',
-      builder: (context, state) => const QuizScreen(),
-    ),
+    if (session == null) {
+      if (!isLoggingIn && !isSplash) return '/auth';
+    } else {
+      if (isLoggingIn || isSplash) return '/home';
+    }
+    return null;
+  },
+  routes: [
+    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+
+    GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+
+    GoRoute(path: '/quiz', builder: (context, state) => const QuizScreen()),
 
     GoRoute(
       path: '/quiz/results',
@@ -61,9 +74,16 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/artisans/:id',
       builder: (context, state) {
-        // We pass the artisan data map through the 'extra' parameter
-        final artisan = state.extra as Map<String, dynamic>;
-        return ArtisanProfileScreen(artisanData: artisan);
+        final id = state.pathParameters['id']!;
+        return ArtisanProfileScreen(artisanId: id);
+      },
+    ),
+
+    GoRoute(
+      path: '/collections/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return CollectionDetailScreen(collectionId: id);
       },
     ),
 
@@ -108,17 +128,17 @@ final goRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/nearby',
-              builder: (context, state) => const NearbyScreen(),
+              path: '/map',
+              builder: (context, state) => const MapScreen(),
             ),
           ],
         ),
-        // Tab 3: Saved (Favorites)
+        // Tab 3: All Products / Explore
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/favorites',
-              builder: (context, state) => const PlaceholderScreen(title: 'Favorites'),
+              path: '/explore',
+              builder: (context, state) => const ExploreScreen(),
             ),
           ],
         ),

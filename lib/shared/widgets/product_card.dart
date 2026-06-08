@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/favorites/providers/favorites_provider.dart';
 
-class ProductCard extends StatefulWidget {
+class ProductCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> item;
-  
-  const ProductCard({
-    super.key,
-    required this.item,
-  });
+
+  const ProductCard({super.key, required this.item});
 
   @override
-  State<ProductCard> createState() => _ProductCardState();
+  ConsumerState<ProductCard> createState() => _ProductCardState();
 }
 
-class _ProductCardState extends State<ProductCard> {
-  bool _isFav = false; // Local state for the UI demo toggle
-
+class _ProductCardState extends ConsumerState<ProductCard> {
   @override
   Widget build(BuildContext context) {
+    final favsState = ref.watch(favoritesProvider);
+    final bool isFav = favsState.items.contains(widget.item['id'].toString());
     // Fallback rating since our Supabase mock data didn't explicitly include one
-    final double rating = widget.item['rating'] ?? 4.8; 
+    final double rating = widget.item['rating'] ?? 4.8;
 
     return GestureDetector(
       onTap: () => context.push('/products/${widget.item['id']}'),
@@ -43,17 +42,21 @@ class _ProductCardState extends State<ProductCard> {
                   right: 8,
                   child: GestureDetector(
                     onTap: () {
-                      setState(() {
-                        _isFav = !_isFav; // Toggle favorite
-                      });
+                      ref
+                          .read(favoritesProvider.notifier)
+                          .toggleItem(widget.item['id'].toString());
                     },
                     child: CircleAvatar(
                       radius: 16,
-                      backgroundColor: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).scaffoldBackgroundColor.withOpacity(0.85),
                       child: Icon(
-                        _isFav ? Icons.favorite : Icons.favorite_border,
+                        isFav ? Icons.favorite : Icons.favorite_border,
                         size: 16,
-                        color: _isFav ? const Color(0xFFD4AF37) : Theme.of(context).iconTheme.color,
+                        color: isFav
+                            ? const Color(0xFFD4AF37)
+                            : Theme.of(context).iconTheme.color,
                       ),
                     ),
                   ),
@@ -100,7 +103,9 @@ class _ProductCardState extends State<ProductCard> {
                 rating.toStringAsFixed(1),
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
               Padding(
@@ -108,7 +113,9 @@ class _ProductCardState extends State<ProductCard> {
                 child: Text(
                   ' · ',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                 ),
               ),
@@ -117,7 +124,9 @@ class _ProductCardState extends State<ProductCard> {
                   widget.item['category'] ?? '',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

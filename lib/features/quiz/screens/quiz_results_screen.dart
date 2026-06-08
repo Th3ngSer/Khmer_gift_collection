@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/quiz_provider.dart';
+import '../widgets/top_match_card.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../shared/widgets/section_header.dart';
+import '../../../shared/widgets/khmer_divider.dart'; 
 
 class QuizResultsScreen extends ConsumerWidget {
   const QuizResultsScreen({super.key});
@@ -23,7 +25,7 @@ class QuizResultsScreen extends ConsumerWidget {
           SliverAppBar(
             pinned: true,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.close), // Swapped back arrow for close (React spec)
               onPressed: () => context.go('/home'), 
             ),
             title: const Text(
@@ -33,6 +35,7 @@ class QuizResultsScreen extends ConsumerWidget {
             centerTitle: true,
           ),
 
+          // 2. Results Intro
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -54,84 +57,23 @@ class QuizResultsScreen extends ConsumerWidget {
                     style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
                   ),
                   const SizedBox(height: 24),
-                  Divider(color: goldColor.withOpacity(0.3)),
+                  const Center(child: KhmerDivider(width: 140)), // Replaced standard divider
                 ],
               ),
             ),
           ),
 
+          // 3. Top Matches List
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final match = topMatches[index];
-                  final item = match['item'];
-                  final matchedTags = match['matched'] as List<dynamic>;
-
-                  return GestureDetector(
-                    onTap: () => context.push('/products/${item['id']}'),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              item['cover'] ?? '',
-                              height: 96,
-                              width: 96,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  (item['category'] ?? '').toString().toUpperCase(),
-                                  style: const TextStyle(fontSize: 10, letterSpacing: 2.0, color: goldColor),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item['name'] ?? '',
-                                  style: const TextStyle(fontFamily: 'serif', fontSize: 16, fontWeight: FontWeight.bold),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '\$${item['price']}',
-                                      style: const TextStyle(fontFamily: 'serif', fontSize: 16, fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(
-                                      matchedTags.isNotEmpty 
-                                          ? 'Matches: ${matchedTags.take(2).join(', ')}' 
-                                          : 'Featured',
-                                      style: TextStyle(
-                                        fontSize: 10, 
-                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  return TopMatchCard(
+                    item: match['item'],
+                    matchedTags: match['matched'] as List<dynamic>,
+                    onTap: () => context.push('/products/${match['item']['id']}'),
                   );
                 },
                 childCount: topMatches.length,
@@ -139,11 +81,15 @@ class QuizResultsScreen extends ConsumerWidget {
             ),
           ),
 
+          // 4. Secondary Recommendations Grid
           if (restMatches.isNotEmpty) ...[
             const SliverToBoxAdapter(
-              child: SectionHeader(
-                title: 'Also worth a look',
-                subtitle: 'Great alternatives based on your profile',
+              child: Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: SectionHeader(
+                  title: 'Also worth a look',
+                  subtitle: 'Great alternatives based on your profile',
+                ),
               ),
             ),
             SliverPadding(
@@ -157,7 +103,6 @@ class QuizResultsScreen extends ConsumerWidget {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    // Extract just the item data to feed our shared ProductCard
                     return ProductCard(item: restMatches[index]['item']);
                   },
                   childCount: restMatches.length,
@@ -166,13 +111,14 @@ class QuizResultsScreen extends ConsumerWidget {
             ),
           ],
 
+          // 5. Retake Quiz Action
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
               child: OutlinedButton(
                 onPressed: () {
                   ref.read(quizAnswersProvider.notifier).resetQuiz();
-                  context.pushReplacement('/quiz'); // Replaces current screen with a fresh quiz
+                  context.pushReplacement('/quiz'); 
                 },
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
