@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+khmer_gift_collection.iml
+PROJECT_SUMMARY.md
