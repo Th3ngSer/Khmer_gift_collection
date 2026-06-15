@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../order/providers/cart_provider.dart';
 
 class ProductModel {
   final String id;
@@ -92,6 +93,28 @@ class ExploreScreen extends ConsumerWidget {
               }
             },
           ),
+
+          IconButton(
+          icon: Consumer(
+            builder: (context, ref, child) {
+              // Read the cart state
+              final cart = ref.watch(cartProvider);
+              // Calculate total items (sum of quantities)
+              final itemCount = cart.values.fold<int>(0, (sum, item) => sum + item.quantity);
+
+              if (itemCount == 0) {
+                return const Icon(Icons.shopping_cart_outlined);
+              }
+              
+              return Badge(
+                label: Text(itemCount.toString()),
+                backgroundColor: Colors.red,
+                child: const Icon(Icons.shopping_cart_outlined),
+              );
+            },
+          ),
+          onPressed: () => context.push('/cart'),
+        ),
         ],
       ),
       // Handle Loading, Error, and Data states dynamically

@@ -18,6 +18,8 @@ import '../../features/favorites/screens/favorites_screen.dart';
 import '../../features/auth/screens/auth_screen.dart';
 import '../../features/profile/screens/promotions_screen.dart';
 import '../../features/home/screens/workshop_reel_screen.dart';
+import '../../features/order/screens/cart_screen.dart';
+import '../../features/order/screens/checkout_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -108,6 +110,15 @@ final goRouter = GoRouter(
           artisanName: extras['artisanName'] as String,
         );
       },
+    ),
+
+    GoRoute(
+      path: '/cart',
+      builder: (context, state) => const CartScreen(),
+    ),
+    GoRoute(
+      path: '/checkout',
+      builder: (context, state) => const CheckoutScreen(),
     ),
 
     GoRoute(
