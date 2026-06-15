@@ -5,7 +5,10 @@ import '../providers/home_provider.dart';
 import '../widgets/story_viewer.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/product_card.dart';
-import '../../../shared/widgets/khmer_divider.dart'; // Added import for custom divider
+import '../../../core/providers/locale_provider.dart';
+import '../../../core/constants/translations.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/khmer_divider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -13,7 +16,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeData = ref.watch(homeFeedProvider);
+    final locale = ref.watch(localeProvider).languageCode;
     const goldColor = Color(0xFFD4AF37);
+
+    String t(String key) => Translations.translate(key, locale);
 
     return Scaffold(
       body: homeData.when(
@@ -27,7 +33,7 @@ class HomeScreen extends ConsumerWidget {
           final recommended = data.items.reversed.take(4).toList();
           final stories = [
             ...data.artisans.map((a) => {
-              'image': a['story_post_image'],
+              'image': a['story_post_image'] ?? a['cover'] ?? '',
               'title': a['name'] ?? '',
               'subtitle': '${a['craft']} · ${a['region']}',
               'caption': a['story'] ?? '',
@@ -41,7 +47,7 @@ class HomeScreen extends ConsumerWidget {
               'caption': p['cta'] ?? '',
               'avatar': p['image'] ?? '',
               'label': p['badge'] ?? '',
-              'linkCollectionId': p['linkCollectionId'], 
+              'linkCollectionId': p['linkCollectionId'],
             }),
           ];
 
@@ -56,17 +62,17 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'សួស្តី · WELCOME',
-                      style: TextStyle(
+                      locale == 'km' ? 'សួស្តី' : 'សួស្តី · ${t('welcome_greeting')}',
+                      style: const TextStyle(
                         fontSize: 10,
                         letterSpacing: 2.0,
                         color: goldColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Text(
-                      'Gift & Souvenir',
-                      style: TextStyle(
+                    Text(
+                      t('gift_and_souvenir'),
+                      style: const TextStyle(
                         fontFamily: 'serif',
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
@@ -95,21 +101,30 @@ class HomeScreen extends ConsumerWidget {
                     _buildStoryRail(context, stories),
 
                     // 3. Gift Finder CTA
-                    _buildGiftFinderCTA(context),
+                    _buildGiftFinderCTA(context, t),
 
                     // 4. Categories Chips
-                    _buildCategories(categories),
+                    _buildCategories(context, categories),
 
                     // 5. Featured Collections Carousel
-                    const SectionHeader(title: 'Featured collections', subtitle: 'Curated this season'),
+                    SectionHeader(
+                      title: t('featured_collections'),
+                      subtitle: t('curated_season'),
+                    ),
                     _buildCollectionsCarousel(context, data.collections),
+
+                    // --- Workshop Reels CTA ---
+                    _buildWorkshopReelsCTA(context, t),
                   ],
                 ),
               ),
 
               // 6. Trending Grid
-              const SliverToBoxAdapter(
-                child: SectionHeader(title: 'Trending now', subtitle: 'Loved this week'),
+              SliverToBoxAdapter(
+                child: SectionHeader(
+                  title: t('trending_now'),
+                  subtitle: t('loved_week'),
+                ),
               ),
               _buildProductGrid(trending),
 
@@ -118,7 +133,10 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 7. Artisan Spotlight
-                    const SectionHeader(title: 'Meet the makers', subtitle: 'Stories from the workshop'),
+                    SectionHeader(
+                      title: t('meet_makers'),
+                      subtitle: t('stories_workshop'),
+                    ),
                     _buildArtisanCarousel(context, data.artisans),
 
                     // 8. Promo Banner
@@ -128,8 +146,8 @@ class HomeScreen extends ConsumerWidget {
               ),
 
               // 9. Recommended Grid
-              const SliverToBoxAdapter(
-                child: SectionHeader(title: 'Recommended for you'),
+              SliverToBoxAdapter(
+                child: SectionHeader(title: t('recommended_for_you')),
               ),
               _buildProductGrid(recommended),
 
@@ -140,16 +158,16 @@ class HomeScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       const SizedBox(
-                        width: 160, // Match React w-40 width logic
+                        width: 160,
                         child: KhmerDivider(),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'HANDMADE IN CAMBODIA',
+                        t('handmade_cambodia'),
                         style: TextStyle(
                           fontSize: 10,
                           letterSpacing: 3.0,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
                         ),
                       ),
                     ],
@@ -189,15 +207,15 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(2), // Reduced to match p-[2px]
+                    padding: const EdgeInsets.all(2),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [Color(0xFF8C2D19), Color(0xFFD4AF37), Color(0xFF8C2D19)], // from-primary via-gold to-primary
+                        colors: [Color(0xFF8C2D19), Color(0xFFD4AF37), Color(0xFF8C2D19)],
                       ),
                     ),
                     child: Container(
-                      padding: const EdgeInsets.all(2), // Inner background gap
+                      padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Theme.of(context).scaffoldBackgroundColor,
@@ -213,7 +231,7 @@ class HomeScreen extends ConsumerWidget {
                     story['label'],
                     style: TextStyle(
                       fontSize: 11,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                      color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
                     ),
                   ),
                 ],
@@ -225,22 +243,21 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGiftFinderCTA(BuildContext context) {
+  Widget _buildGiftFinderCTA(BuildContext context, String Function(String) t) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: InkWell(
         onTap: () => context.push('/quiz'),
         borderRadius: BorderRadius.circular(24),
-        child: ClipRRect( // Added to contain the background blur
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
-              // Base Gradient Background
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF8C2D19), Color(0xFF6B2213)], // Primary to slightly darker
+                    colors: [Color(0xFF8C2D19), Color(0xFF6B2213)],
                   ),
                 ),
                 child: Row(
@@ -248,19 +265,19 @@ class HomeScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD4AF37).withOpacity(0.95), // bg-gold/95
+                        color: const Color(0xFFD4AF37).withAlpha(240),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(Icons.auto_awesome, color: Color(0xFF8C2D19)),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Find the perfect gift',
-                            style: TextStyle(
+                            t('find_perfect_gift'),
+                            style: const TextStyle(
                               fontFamily: 'serif',
                               fontSize: 18,
                               color: Colors.white,
@@ -268,8 +285,8 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            'A 4-step quiz, curated just for them.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70),
+                            t('quiz_sub'),
+                            style: const TextStyle(fontSize: 12, color: Colors.white70),
                           ),
                         ],
                       ),
@@ -278,7 +295,6 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              // The blurred gold circle (bg-gold/20 blur-2xl)
               Positioned(
                 right: -24,
                 top: -24,
@@ -289,7 +305,7 @@ class HomeScreen extends ConsumerWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFD4AF37).withOpacity(0.2),
+                        color: const Color(0xFFD4AF37).withAlpha(50),
                         blurRadius: 40,
                         spreadRadius: 20,
                       ),
@@ -304,7 +320,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategories(List<String> categories) {
+  Widget _buildCategories(BuildContext context, List<String> categories) {
     return SizedBox(
       height: 40,
       child: ListView.builder(
@@ -336,7 +352,7 @@ class HomeScreen extends ConsumerWidget {
         itemBuilder: (context, index) {
           final c = collections[index];
           return GestureDetector(
-            onTap: () => context.push('/collections/${c['id']}'), // Added tap handler
+            onTap: () => context.push('/collections/${c['id']}'),
             child: Container(
               width: 280,
               margin: const EdgeInsets.only(right: 12),
@@ -353,7 +369,7 @@ class HomeScreen extends ConsumerWidget {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.7), Colors.transparent], // Matched React opacity
+                    colors: [Colors.black.withAlpha(180), Colors.transparent],
                   ),
                 ),
                 padding: const EdgeInsets.all(16),
@@ -416,7 +432,7 @@ class HomeScreen extends ConsumerWidget {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                    colors: [Colors.black.withAlpha(200), Colors.transparent],
                   ),
                 ),
                 padding: const EdgeInsets.all(12),
@@ -428,7 +444,7 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       (a['region'] ?? '').toString().toUpperCase(),
                       style: const TextStyle(
-                        fontSize: 10, // Tweaked from 9 to match [10px]
+                        fontSize: 10,
                         letterSpacing: 2.0,
                         color: Color(0xFFD4AF37),
                       ),
@@ -440,7 +456,7 @@ class HomeScreen extends ConsumerWidget {
                         fontSize: 16,
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        height: 1.2, // Added leading-tight
+                        height: 1.2,
                       ),
                     ),
                     Text(
@@ -453,6 +469,71 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildWorkshopReelsCTA(BuildContext context, String Function(String) t) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: GestureDetector(
+        onTap: () => context.push('/reels'),
+        child: Container(
+          height: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            image: const DecorationImage(
+              image: NetworkImage('https://assets.mixkit.com/videos/preview/mixkit-weaving-silk-on-a-loom-41584-0.jpg'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                colors: [Colors.black.withAlpha(150), Colors.transparent],
+              ),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.gold,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: AppTheme.gold.withAlpha(100), blurRadius: 15, spreadRadius: 2),
+                    ],
+                  ),
+                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('workshop_live'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'serif',
+                        ),
+                      ),
+                      Text(
+                        t('watch_how_made'),
+                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -476,10 +557,10 @@ class HomeScreen extends ConsumerWidget {
             gradient: LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              stops: const [0.0, 0.5, 1.0], // Matched via-black/30 spread
+              stops: const [0.0, 0.5, 1.0],
               colors: [
-                Colors.black.withOpacity(0.7),
-                Colors.black.withOpacity(0.3), 
+                Colors.black.withAlpha(180),
+                Colors.black.withAlpha(76),
                 Colors.transparent
               ],
             ),
@@ -487,7 +568,7 @@ class HomeScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           alignment: Alignment.centerLeft,
           child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.66, // Matched w-2/3
+            width: MediaQuery.of(context).size.width * 0.66,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

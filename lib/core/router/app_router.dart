@@ -16,6 +16,10 @@ import '../../features/profile/screens/user_profile_screen.dart';
 import '../../features/collection/screens/collection_detail_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
 import '../../features/auth/screens/auth_screen.dart';
+import '../../features/profile/screens/promotions_screen.dart';
+import '../../features/home/screens/workshop_reel_screen.dart';
+import '../../features/order/screens/cart_screen.dart';
+import '../../features/order/screens/checkout_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -86,6 +90,16 @@ final goRouter = GoRouter(
     ),
 
     GoRoute(
+      path: '/promotions',
+      builder: (context, state) => const PromotionsScreen(),
+    ),
+
+    GoRoute(
+      path: '/reels',
+      builder: (context, state) => const WorkshopReelScreen(),
+    ),
+
+    GoRoute(
       path: '/chat-room/:roomId',
       builder: (context, state) {
         final roomId = state.pathParameters['roomId']!;
@@ -96,6 +110,15 @@ final goRouter = GoRouter(
           artisanName: extras['artisanName'] as String,
         );
       },
+    ),
+
+    GoRoute(
+      path: '/cart',
+      builder: (context, state) => const CartScreen(),
+    ),
+    GoRoute(
+      path: '/checkout',
+      builder: (context, state) => const CheckoutScreen(),
     ),
 
     GoRoute(
@@ -130,8 +153,8 @@ final goRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/explore', 
-              builder: (context, state) => const ExploreScreen(), 
+              path: '/explore',
+              builder: (context, state) => const ExploreScreen(),
             ),
           ],
         ),
