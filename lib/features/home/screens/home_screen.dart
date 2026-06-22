@@ -189,6 +189,10 @@ class HomeScreen extends ConsumerWidget {
     const goldColor = Color(0xFFD4AF37);
     final isArtisan = role == 'artisan';
 
+    if (stories.isEmpty && !isArtisan) {
+      return const SizedBox.shrink();
+    }
+
     return SizedBox(
       height: 110,
       child: ListView.builder(

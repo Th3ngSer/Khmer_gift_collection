@@ -125,101 +125,104 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               horizontal: 24.0,
               vertical: 32.0,
             ),
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AuthHeader(isSignUp: _isSignUp),
-                const SizedBox(height: 48),
-                AuthForm(
-                  isSignUp: _isSignUp,
-                  isArtisan: _isArtisan,
-                  emailController: _emailController,
-                  passwordController: _passwordController,
-                  nameController: _nameController,
-                  onArtisanChanged: (val) =>
-                      setState(() => _isArtisan = val ?? false),
-                ),
-                const SizedBox(height: 32),
-                AuthSubmitButton(
-                  isLoading: _isLoading,
-                  isSignUp: _isSignUp,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: 24),
-                AuthToggleModeButton(
-                  isSignUp: _isSignUp,
-                  onPressed: () => setState(() => _isSignUp = !_isSignUp),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'OR',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                const SizedBox(height: 16),
-                OutlinedButton(
-                  onPressed: () =>
-                      ref.read(authProvider.notifier).signInWithGoogle(),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(color: Colors.grey.shade300),
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AuthHeader(isSignUp: _isSignUp),
+                  const SizedBox(height: 48),
+                  AuthForm(
+                    isSignUp: _isSignUp,
+                    isArtisan: _isArtisan,
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                    nameController: _nameController,
+                    onArtisanChanged: (val) =>
+                        setState(() => _isArtisan = val ?? false),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  const SizedBox(height: 32),
+                  AuthSubmitButton(
+                    isLoading: _isLoading,
+                    isSignUp: _isSignUp,
+                    onPressed: _submit,
+                  ),
+                  const SizedBox(height: 24),
+                  AuthToggleModeButton(
+                    isSignUp: _isSignUp,
+                    onPressed: () => setState(() => _isSignUp = !_isSignUp),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
                     children: [
-                      Image.network(
-                        'https://developers.google.com/static/identity/images/g-logo.png',
-                        height: 18,
-                        width: 18,
-                        // CATCHES CORS & NETWORK ERRORS INSTANTLY TO PREVENT LAYOUT EXPLOSIONS:
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 18,
-                            height: 18,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF4285F4), // Official Google Blue
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Text(
-                              'G',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Continue with Google',
-                        style: TextStyle(
-                          color: Color(0xFF1F2937),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                      Expanded(child: Divider(color: Colors.grey.shade300)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ),
+                      Expanded(child: Divider(color: Colors.grey.shade300)),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () =>
+                        ref.read(authProvider.notifier).signInWithGoogle(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.network(
+                          'https://developers.google.com/static/identity/images/g-logo.png',
+                          height: 18,
+                          width: 18,
+                          // CATCHES CORS & NETWORK ERRORS INSTANTLY TO PREVENT LAYOUT EXPLOSIONS:
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 18,
+                              height: 18,
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                color:
+                                    Color(0xFF4285F4), // Official Google Blue
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Text(
+                                'G',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Continue with Google',
+                          style: TextStyle(
+                            color: Color(0xFF1F2937),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
