@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../features/order/providers/cart_provider.dart';
-
-class ProductBottomCTA extends ConsumerWidget {
+class ProductBottomCTA extends StatelessWidget {
   final Map<String, dynamic>? item;
   final bool isFav;
   final VoidCallback onFavPressed;
@@ -17,7 +14,7 @@ class ProductBottomCTA extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // Copying the public property to a local variable allows Dart to promote its type
     final localItem = item;
 
@@ -49,17 +46,7 @@ class ProductBottomCTA extends ConsumerWidget {
             child: ElevatedButton(
               onPressed: localItem == null
                   ? null
-                  : () {
-                      final item = localItem;
-                      if (item == null) return;
-                      ref.read(cartProvider.notifier).addItem(
-                        item['id'].toString(),
-                        double.tryParse(item['price']?.toString() ?? '') ?? 0.0,
-                        item['name']?.toString() ?? '',
-                        item['cover']?.toString() ?? '',
-                      );
-                      context.push('/cart');
-                    },
+                  : () => context.push('/booking/${localItem['id']}'), 
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8C2D19),
                 foregroundColor: Colors.white,
