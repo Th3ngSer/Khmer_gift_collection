@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/error_placeholder.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -690,76 +691,96 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+
   void _showAddStorySheet(BuildContext context, WidgetRef ref) {
-  final urlController = TextEditingController();
-  final captionController = TextEditingController();
-  bool isPosting = false;
+    final urlController = TextEditingController();
+    final captionController = TextEditingController();
+    bool isPosting = false;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-    builder: (context) => StatefulBuilder(
-      builder: (context, setSheetState) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Share Creative Process', style: TextStyle(fontFamily: 'serif', fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: urlController,
-              decoration: InputDecoration(
-                labelText: 'Story Image URL',
-                hintText: 'https://images.unsplash.com/...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+              24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Share Creative Process',
+                  style: TextStyle(
+                      fontFamily: 'serif',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  labelText: 'Story Image URL',
+                  hintText: 'https://images.unsplash.com/...',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: captionController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Story Caption / Legend',
-                hintText: 'Describe what you are working on today...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: captionController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Story Caption / Legend',
+                  hintText: 'Describe what you are working on today...',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8C2D19), foregroundColor: Colors.white),
-                onPressed: isPosting ? null : () async {
-                  if (urlController.text.trim().isEmpty) return;
-                  setSheetState(() => isPosting = true);
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8C2D19),
+                      foregroundColor: Colors.white),
+                  onPressed: isPosting
+                      ? null
+                      : () async {
+                          if (urlController.text.trim().isEmpty) return;
+                          setSheetState(() => isPosting = true);
 
-                  final user = Supabase.instance.client.auth.currentUser;
-                  if (user != null) {
-                    try {
-                      await Supabase.instance.client.from('artisans').update({
-                        'latest_story_url': urlController.text.trim(),
-                        'story_caption': captionController.text.trim(),
-                        'story_created_at': DateTime.now().toIso8601String(),
-                      }).eq('id', user.id);
+                          final user =
+                              Supabase.instance.client.auth.currentUser;
+                          if (user != null) {
+                            try {
+                              await Supabase.instance.client
+                                  .from('artisans')
+                                  .update({
+                                'latest_story_url': urlController.text.trim(),
+                                'story_caption': captionController.text.trim(),
+                                'story_created_at':
+                                    DateTime.now().toIso8601String(),
+                              }).eq('id', user.id);
 
-                      ref.invalidate(homeFeedProvider); // Refresh layout stream
-                      if (context.mounted) Navigator.pop(context);
-                    } catch (e) {
-                      setSheetState(() => isPosting = false);
-                    }
-                  }
-                },
-                child: isPosting 
-                    ? const CircularProgressIndicator(color: Colors.white) 
-                    : const Text('Publish Story', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ref.invalidate(
+                                  homeFeedProvider); // Refresh layout stream
+                              if (context.mounted) Navigator.pop(context);
+                            } catch (e) {
+                              setSheetState(() => isPosting = false);
+                            }
+                          }
+                        },
+                  child: isPosting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Publish Story',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
