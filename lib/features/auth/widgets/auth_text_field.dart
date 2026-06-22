@@ -30,7 +30,8 @@ class AuthTextField extends StatelessWidget {
         prefixIcon: Icon(prefixIcon, color: Colors.grey.shade400, size: 20),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -41,9 +42,23 @@ class AuthTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AuthConstants.goldColor, width: 2),
+          borderSide:
+              const BorderSide(color: AuthConstants.goldColor, width: 2),
         ),
       ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'This field is required';
+        }
+        if (keyboardType == TextInputType.emailAddress &&
+            !value.contains('@')) {
+          return 'Please enter a valid email address';
+        }
+        if (obscureText && value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return null;
+      },
     );
   }
 }

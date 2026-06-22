@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
 import '../../shared/widgets/main_navigation_scaffold.dart';
 import '../../features/home/screens/splash_screen.dart';
 import '../../features/home/screens/home_screen.dart';
@@ -20,6 +21,23 @@ import '../../features/profile/screens/promotions_screen.dart';
 import '../../features/home/screens/workshop_reel_screen.dart';
 import '../../features/order/screens/cart_screen.dart';
 import '../../features/order/screens/checkout_screen.dart';
+
+class SupabaseAuthRefreshListenable extends ChangeNotifier {
+  late final StreamSubscription<AuthState> _subscription;
+
+  SupabaseAuthRefreshListenable() {
+    _subscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -41,6 +59,7 @@ class PlaceholderScreen extends StatelessWidget {
 
 final goRouter = GoRouter(
   initialLocation: '/',
+  refreshListenable: SupabaseAuthRefreshListenable(),
   redirect: (context, state) {
     final session = Supabase.instance.client.auth.currentSession;
     final isLoggingIn = state.matchedLocation == '/auth';
@@ -55,16 +74,12 @@ final goRouter = GoRouter(
   },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-
     GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
-
     GoRoute(path: '/quiz', builder: (context, state) => const QuizScreen()),
-
     GoRoute(
       path: '/quiz/results',
       builder: (context, state) => const QuizResultsScreen(),
     ),
-
     GoRoute(
       path: '/products/:id',
       builder: (context, state) {
@@ -72,7 +87,6 @@ final goRouter = GoRouter(
         return ProductDetailScreen(productId: productId);
       },
     ),
-
     GoRoute(
       path: '/artisans/:id',
       builder: (context, state) {
@@ -80,7 +94,6 @@ final goRouter = GoRouter(
         return ArtisanProfileScreen(artisanId: id);
       },
     ),
-
     GoRoute(
       path: '/collections/:id',
       builder: (context, state) {
@@ -88,30 +101,29 @@ final goRouter = GoRouter(
         return CollectionDetailScreen(collectionId: id);
       },
     ),
-
     GoRoute(
       path: '/promotions',
       builder: (context, state) => const PromotionsScreen(),
     ),
-
     GoRoute(
       path: '/reels',
       builder: (context, state) => const WorkshopReelScreen(),
     ),
-
     GoRoute(
       path: '/chat-room/:roomId',
       builder: (context, state) {
         final roomId = state.pathParameters['roomId']!;
-        final extras = state.extra as Map<String, dynamic>;
+        final currentUserId = state.uri.queryParameters['currentUserId'] ?? '';
+        final artisanName =
+            state.uri.queryParameters['artisanName'] ?? 'Artisan';
+
         return ChatRoomScreen(
           roomId: roomId,
-          currentUserId: extras['currentUserId'] as String,
-          artisanName: extras['artisanName'] as String,
+          currentUserId: currentUserId,
+          artisanName: artisanName,
         );
       },
     ),
-
     GoRoute(
       path: '/cart',
       builder: (context, state) => const CartScreen(),
@@ -120,12 +132,10 @@ final goRouter = GoRouter(
       path: '/checkout',
       builder: (context, state) => const CheckoutScreen(),
     ),
-
     GoRoute(
       path: '/favorites',
       builder: (context, state) => const FavoritesScreen(),
     ),
-
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return MainNavigationScaffold(navigationShell: navigationShell);

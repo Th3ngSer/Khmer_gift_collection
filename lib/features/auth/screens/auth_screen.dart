@@ -7,6 +7,7 @@ import '../widgets/auth_header.dart';
 import '../widgets/auth_form.dart';
 import '../widgets/auth_submit_button.dart';
 import '../widgets/auth_toggle_mode_button.dart';
+import '../widgets/auth_constants.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -18,27 +19,25 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isSignUp = false;
   bool _isArtisan = false;
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   bool _isLoading = false;
 
   void _submit() async {
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
       if (_isSignUp) {
-        await ref
-            .read(authProvider.notifier)
-            .signUp(
+        await ref.read(authProvider.notifier).signUp(
               _emailController.text.trim(),
               _passwordController.text.trim(),
               _nameController.text.trim(),
               _isArtisan,
             );
       } else {
-        await ref
-            .read(authProvider.notifier)
-            .signIn(
+        await ref.read(authProvider.notifier).signIn(
               _emailController.text.trim(),
               _passwordController.text.trim(),
             );
@@ -93,7 +92,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: const Text(
                   'Try Again',
                   style: TextStyle(
-                    color: Color(0xFFD4AF37),
+                    color: AuthConstants.goldColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -116,10 +115,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Changed to a clean white mobile canvas
+      backgroundColor: const Color(0xFFFDFBF7),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -127,12 +125,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               horizontal: 24.0,
               vertical: 32.0,
             ),
+            key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 AuthHeader(isSignUp: _isSignUp),
-                const SizedBox(height: 48), // Generous mobile spacing
+                const SizedBox(height: 48),
                 AuthForm(
                   isSignUp: _isSignUp,
                   isArtisan: _isArtisan,
@@ -153,20 +152,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   isSignUp: _isSignUp,
                   onPressed: () => setState(() => _isSignUp = !_isSignUp),
                 ),
-                // ADD THIS GOOGLE BUTTON SEPARATOR AND WIDGET HERE:
-                const Row(
+                const SizedBox(height: 24),
+                Row(
                   children: [
-                    Expanded(child: Divider()),
-                    Padding(
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'OR',
                         style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ),
-                    Expanded(child: Divider()),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
                   ],
                 ),
+                const SizedBox(height: 24),
                 const SizedBox(height: 16),
                 OutlinedButton(
                   onPressed: () =>
@@ -174,6 +174,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(color: Colors.grey.shade300),
+                    backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
