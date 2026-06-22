@@ -1,15 +1,18 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../../chat_reviews/providers/chat_provider.dart';
 
-class ArtisanProfileScreen extends StatelessWidget {
+class ArtisanProfileScreen extends ConsumerWidget {
   final Map<String, dynamic> artisanData;
 
   const ArtisanProfileScreen({super.key, required this.artisanData});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Warm Earth Tones & Gold Highlights
     const goldColor = Color(0xFFD4AF37);
 
@@ -28,6 +31,29 @@ class ArtisanProfileScreen extends StatelessWidget {
             ),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: CircleAvatar(
+              backgroundColor: Colors.black.withOpacity(0.3),
+              child: IconButton(
+                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                onPressed: () {
+                  final roomId = 'room_${artisanData['name']}';
+                  ref.read(chatProvider.notifier).initiateChat(
+                    roomId, 
+                    artisanData['name'] ?? 'Artisan', 
+                    artisanData['avatar'] ?? artisanData['cover'] ?? 'https://i.pravatar.cc/150'
+                  );
+                  context.push('/chat-room/$roomId', extra: {
+                    'currentUserId': 'user_123',
+                    'artisanName': artisanData['name'] ?? 'Artisan',
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

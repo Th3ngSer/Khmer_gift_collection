@@ -108,6 +108,7 @@ final goRouter = GoRouter(
           roomId: roomId,
           currentUserId: extras['currentUserId'] as String,
           artisanName: extras['artisanName'] as String,
+          productContext: extras['productContext'] as Map<String, dynamic>?,
         );
       },
     ),
