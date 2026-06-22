@@ -31,13 +31,8 @@ class HomeScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(homeFeedProvider),
         ),
         data: (data) {
-          final categories =
-              data.items.map((i) => i['category'].toString()).toSet().toList();
           final trending = data.items.take(4).toList();
           final recommended = data.items.reversed.take(4).toList();
-          final finalCategories = categories.isEmpty
-              ? ['Textile', 'Silver', 'Wood', 'Edible', 'Jewelry']
-              : categories;
           final stories = [
             ...data.artisans.map((a) => {
                   'image': a['story_post_image'] ?? a['cover'] ?? '',
@@ -113,7 +108,7 @@ class HomeScreen extends ConsumerWidget {
                     _buildGiftFinderCTA(context, t),
 
                     // 4. Categories Chips
-                    _buildCategories(context, finalCategories),
+                    _buildCategories(context, data.categories),
 
                     // 5. Featured Collections Carousel
                     SectionHeader(

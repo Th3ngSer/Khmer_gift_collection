@@ -8,12 +8,14 @@ class HomeFeedData {
   final List<dynamic> promotions;
   final List<dynamic> collections;
   final List<dynamic> items;
+  final List<String> categories;
 
   HomeFeedData({
     required this.artisans,
     required this.promotions,
     required this.collections,
     required this.items,
+    required this.categories,
   });
 }
 
@@ -57,14 +59,21 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
     final imageUrl = (images != null && images.isNotEmpty)
         ? images.first['image_url']
         : fallbackProduct;
-
     return {...p, 'cover': imageUrl};
   }).toList();
+
+  final dynamicCategories =
+      safeProducts.map((i) => i['category'].toString()).toSet().toList();
+
+  final finalCategories = dynamicCategories.isEmpty
+      ? ['Textile', 'Silver', 'Wood', 'Edible', 'Jewelry']
+      : dynamicCategories;
 
   return HomeFeedData(
     artisans: safeArtisans,
     items: safeProducts,
     promotions: localData['promotions'] ?? [],
     collections: localData['collections'] ?? [],
+    categories: finalCategories, 
   );
 });
