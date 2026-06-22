@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthNotifier extends StreamNotifier<User?> {
   @override
@@ -38,11 +39,15 @@ class AuthNotifier extends StreamNotifier<User?> {
   }
 
   Future<void> signInWithGoogle() async {
-    await Supabase.instance.client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: 'khmergiftapp://login-callback',
-    );
-  }
+  final String redirectUrl = kIsWeb 
+      ? 'http://localhost:56987/home'  
+      : 'khmergiftapp://login-callback';
+
+  await Supabase.instance.client.auth.signInWithOAuth(
+    OAuthProvider.google,
+    redirectTo: redirectUrl,
+  );
+}
 
   Future<void> signOut() async {
     await Supabase.instance.client.auth.signOut();

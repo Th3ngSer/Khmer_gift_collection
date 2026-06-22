@@ -9,6 +9,8 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../core/constants/translations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/khmer_divider.dart';
+import '../../../shared/widgets/loading_shimmer.dart';
+import '../../../shared/widgets/error_placeholder.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -23,32 +25,37 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       body: homeData.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: goldColor),
+        loading: () => const LoadingShimmer(),
+        error: (err, stack) => ErrorPlaceholder(
+          message: err.toString(),
+          onRetry: () => ref.invalidate(homeFeedProvider),
         ),
-        error: (err, stack) => Center(child: Text('Error: $err')),
         data: (data) {
-          final categories = data.items.map((i) => i['category'].toString()).toSet().toList();
+          final categories =
+              data.items.map((i) => i['category'].toString()).toSet().toList();
           final trending = data.items.take(4).toList();
           final recommended = data.items.reversed.take(4).toList();
+          final finalCategories = categories.isEmpty
+              ? ['Textile', 'Silver', 'Wood', 'Edible', 'Jewelry']
+              : categories;
           final stories = [
             ...data.artisans.map((a) => {
-              'image': a['story_post_image'] ?? a['cover'] ?? '',
-              'title': a['name'] ?? '',
-              'subtitle': '${a['craft']} · ${a['region']}',
-              'caption': a['story'] ?? '',
-              'avatar': a['avatar'] ?? a['cover'] ?? '',
-              'label': (a['name'] ?? '').toString().split(' ').first,
-            }),
+                  'image': a['story_post_image'] ?? a['cover'] ?? '',
+                  'title': a['name'] ?? '',
+                  'subtitle': '${a['craft']} · ${a['region']}',
+                  'caption': a['story'] ?? '',
+                  'avatar': a['avatar'] ?? a['cover'] ?? '',
+                  'label': (a['name'] ?? '').toString().split(' ').first,
+                }),
             ...data.promotions.take(2).map((p) => {
-              'image': p['image'] ?? '',
-              'title': p['title'] ?? '',
-              'subtitle': p['subtitle'] ?? '',
-              'caption': p['cta'] ?? '',
-              'avatar': p['image'] ?? '',
-              'label': p['badge'] ?? '',
-              'linkCollectionId': p['linkCollectionId'],
-            }),
+                  'image': p['image'] ?? '',
+                  'title': p['title'] ?? '',
+                  'subtitle': p['subtitle'] ?? '',
+                  'caption': p['cta'] ?? '',
+                  'avatar': p['image'] ?? '',
+                  'label': p['badge'] ?? '',
+                  'linkCollectionId': p['linkCollectionId'],
+                }),
           ];
 
           return CustomScrollView(
@@ -62,7 +69,9 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      locale == 'km' ? 'សួស្តី' : 'សួស្តី · ${t('welcome_greeting')}',
+                      locale == 'km'
+                          ? 'សួស្តី'
+                          : 'សួស្តី · ${t('welcome_greeting')}',
                       style: const TextStyle(
                         fontSize: 10,
                         letterSpacing: 2.0,
@@ -104,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
                     _buildGiftFinderCTA(context, t),
 
                     // 4. Categories Chips
-                    _buildCategories(context, categories),
+                    _buildCategories(context, finalCategories),
 
                     // 5. Featured Collections Carousel
                     SectionHeader(
@@ -140,7 +149,8 @@ class HomeScreen extends ConsumerWidget {
                     _buildArtisanCarousel(context, data.artisans),
 
                     // 8. Promo Banner
-                    if (data.promotions.isNotEmpty) _buildPromoBanner(context, data.promotions.first),
+                    if (data.promotions.isNotEmpty)
+                      _buildPromoBanner(context, data.promotions.first),
                   ],
                 ),
               ),
@@ -167,7 +177,10 @@ class HomeScreen extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 10,
                           letterSpacing: 3.0,
-                          color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withAlpha(128),
                         ),
                       ),
                     ],
@@ -181,7 +194,8 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStoryRail(BuildContext context, List<Map<String, dynamic>> stories) {
+  Widget _buildStoryRail(
+      BuildContext context, List<Map<String, dynamic>> stories) {
     return SizedBox(
       height: 100,
       child: ListView.builder(
@@ -196,9 +210,10 @@ class HomeScreen extends ConsumerWidget {
               onTap: () {
                 Navigator.of(context).push(
                   PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) => 
+                    pageBuilder: (context, animation, secondaryAnimation) =>
                         StoryViewer(stories: stories, initialIndex: index),
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
                       return FadeTransition(opacity: animation, child: child);
                     },
                   ),
@@ -211,7 +226,11 @@ class HomeScreen extends ConsumerWidget {
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [Color(0xFF8C2D19), Color(0xFFD4AF37), Color(0xFF8C2D19)],
+                        colors: [
+                          Color(0xFF8C2D19),
+                          Color(0xFFD4AF37),
+                          Color(0xFF8C2D19)
+                        ],
                       ),
                     ),
                     child: Container(
@@ -231,7 +250,10 @@ class HomeScreen extends ConsumerWidget {
                     story['label'],
                     style: TextStyle(
                       fontSize: 11,
-                      color: Theme.of(context).colorScheme.onSurface.withAlpha(200),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withAlpha(200),
                     ),
                   ),
                 ],
@@ -268,7 +290,8 @@ class HomeScreen extends ConsumerWidget {
                         color: const Color(0xFFD4AF37).withAlpha(240),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.auto_awesome, color: Color(0xFF8C2D19)),
+                      child: const Icon(Icons.auto_awesome,
+                          color: Color(0xFF8C2D19)),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -286,7 +309,8 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           Text(
                             t('quiz_sub'),
-                            style: const TextStyle(fontSize: 12, color: Colors.white70),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.white70),
                           ),
                         ],
                       ),
@@ -331,10 +355,13 @@ class HomeScreen extends ConsumerWidget {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Chip(
-              label: Text(categories[index], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              label: Text(categories[index],
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500)),
               backgroundColor: Theme.of(context).cardColor,
               side: BorderSide(color: Theme.of(context).dividerColor),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
             ),
           );
         },
@@ -342,7 +369,8 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCollectionsCarousel(BuildContext context, List<dynamic> collections) {
+  Widget _buildCollectionsCarousel(
+      BuildContext context, List<dynamic> collections) {
     return SizedBox(
       height: 180,
       child: ListView.builder(
@@ -461,7 +489,8 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     Text(
                       a['craft'] ?? '',
-                      style: const TextStyle(fontSize: 11, color: Colors.white70),
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -473,7 +502,8 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWorkshopReelsCTA(BuildContext context, String Function(String) t) {
+  Widget _buildWorkshopReelsCTA(
+      BuildContext context, String Function(String) t) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: GestureDetector(
@@ -483,7 +513,8 @@ class HomeScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             image: const DecorationImage(
-              image: NetworkImage('https://assets.mixkit.com/videos/preview/mixkit-weaving-silk-on-a-loom-41584-0.jpg'),
+              image: NetworkImage(
+                  'https://assets.mixkit.com/videos/preview/mixkit-weaving-silk-on-a-loom-41584-0.jpg'),
               fit: BoxFit.cover,
             ),
           ),
@@ -503,10 +534,14 @@ class HomeScreen extends ConsumerWidget {
                     color: AppTheme.gold,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: AppTheme.gold.withAlpha(100), blurRadius: 15, spreadRadius: 2),
+                      BoxShadow(
+                          color: AppTheme.gold.withAlpha(100),
+                          blurRadius: 15,
+                          spreadRadius: 2),
                     ],
                   ),
-                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+                  child: const Icon(Icons.play_arrow_rounded,
+                      color: Colors.white, size: 32),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -525,7 +560,8 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       Text(
                         t('watch_how_made'),
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14),
                       ),
                     ],
                   ),
@@ -613,11 +649,11 @@ class HomeScreen extends ConsumerWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 16,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.60, 
+          childAspectRatio: 0.60,
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
-            return ProductCard(item: items[index]); 
+            return ProductCard(item: items[index]);
           },
           childCount: items.length,
         ),
