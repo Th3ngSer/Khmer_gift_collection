@@ -18,6 +18,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeData = ref.watch(homeFeedProvider);
+    final userRoleAsync = ref.watch(userRoleProvider);
     final locale = ref.watch(localeProvider).languageCode;
     const goldColor = Color(0xFFD4AF37);
 
@@ -33,25 +34,17 @@ class HomeScreen extends ConsumerWidget {
         data: (data) {
           final trending = data.items.take(4).toList();
           final recommended = data.items.reversed.take(4).toList();
-          final stories = [
-            ...data.artisans.map((a) => {
-                  'image': a['story_post_image'] ?? a['cover'] ?? '',
-                  'title': a['name'] ?? '',
-                  'subtitle': '${a['craft']} · ${a['region']}',
-                  'caption': a['story'] ?? '',
-                  'avatar': a['avatar'] ?? a['cover'] ?? '',
-                  'label': (a['name'] ?? '').toString().split(' ').first,
-                }),
-            ...data.promotions.take(2).map((p) => {
-                  'image': p['image'] ?? '',
-                  'title': p['title'] ?? '',
-                  'subtitle': p['subtitle'] ?? '',
-                  'caption': p['cta'] ?? '',
-                  'avatar': p['image'] ?? '',
-                  'label': p['badge'] ?? '',
-                  'linkCollectionId': p['linkCollectionId'],
-                }),
-          ];
+          final activeStories = data.artisans
+              .where((a) => a['has_active_story'] == true)
+              .map((a) => {
+                    'image': a['story_post_image'],
+                    'title': a['name'] ?? '',
+                    'subtitle': 'Master Artisan',
+                    'caption': a['story_text'] ?? '',
+                    'avatar': a['avatar'],
+                    'label': (a['name'] ?? '').toString().split(' ').first,
+                  })
+              .toList();
 
           return CustomScrollView(
             slivers: [
@@ -102,7 +95,8 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 2. Story Rail (Avatars)
-                    _buildStoryRail(context, stories),
+                    _buildStoryRail(context, ref, activeStories,
+                        userRoleAsync.value ?? 'customer'),
 
                     // 3. Gift Finder CTA
                     _buildGiftFinderCTA(context, t),
@@ -189,16 +183,65 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStoryRail(
-      BuildContext context, List<Map<String, dynamic>> stories) {
+  Widget _buildStoryRail(BuildContext context, WidgetRef ref,
+      List<Map<String, dynamic>> stories, String role) {
+    const goldColor = Color(0xFFD4AF37);
+    final isArtisan = role == 'artisan';
+
     return SizedBox(
-      height: 100,
+      height: 110,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: stories.length,
+        itemCount: stories.length + (isArtisan ? 1 : 0),
         itemBuilder: (context, index) {
-          final story = stories[index];
+          // Render the creation slot first for artisans
+          if (isArtisan && index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: GestureDetector(
+                onTap: () => _showAddStorySheet(context, ref),
+                child: Column(
+                  children: [
+                    Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey.shade200),
+                          child: const CircleAvatar(
+                            radius: 26,
+                            backgroundColor: Colors.white,
+                            child: Icon(Icons.palette_outlined,
+                                color: Color(0xFF8C2D19)),
+                          ),
+                        ),
+                        const Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: CircleAvatar(
+                            radius: 10,
+                            backgroundColor: goldColor,
+                            child:
+                                Icon(Icons.add, size: 14, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text('Add Story',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final storyIndex = isArtisan ? index - 1 : index;
+          final story = stories[storyIndex];
+
           return Padding(
             padding: const EdgeInsets.only(right: 16),
             child: GestureDetector(
@@ -206,11 +249,10 @@ class HomeScreen extends ConsumerWidget {
                 Navigator.of(context).push(
                   PageRouteBuilder(
                     pageBuilder: (context, animation, secondaryAnimation) =>
-                        StoryViewer(stories: stories, initialIndex: index),
+                        StoryViewer(stories: stories, initialIndex: storyIndex),
                     transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
+                        (context, animation, secondaryAnimation, child) =>
+                            FadeTransition(opacity: animation, child: child),
                   ),
                 );
               },
@@ -220,37 +262,30 @@ class HomeScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(2),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(0xFF8C2D19),
-                          Color(0xFFD4AF37),
-                          Color(0xFF8C2D19)
-                        ],
-                      ),
+                      gradient: LinearGradient(colors: [
+                        Color(0xFF8C2D19),
+                        goldColor,
+                        Color(0xFF8C2D19)
+                      ]),
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                      ),
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).scaffoldBackgroundColor),
                       child: CircleAvatar(
-                        radius: 26,
-                        backgroundImage: NetworkImage(story['avatar']),
-                      ),
+                          radius: 26,
+                          backgroundImage: NetworkImage(story['avatar'])),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    story['label'],
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withAlpha(200),
-                    ),
-                  ),
+                  Text(story['label'],
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withAlpha(200))),
                 ],
               ),
             ),
@@ -655,4 +690,76 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+  void _showAddStorySheet(BuildContext context, WidgetRef ref) {
+  final urlController = TextEditingController();
+  final captionController = TextEditingController();
+  bool isPosting = false;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (context) => StatefulBuilder(
+      builder: (context, setSheetState) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Share Creative Process', style: TextStyle(fontFamily: 'serif', fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: urlController,
+              decoration: InputDecoration(
+                labelText: 'Story Image URL',
+                hintText: 'https://images.unsplash.com/...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: captionController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Story Caption / Legend',
+                hintText: 'Describe what you are working on today...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8C2D19), foregroundColor: Colors.white),
+                onPressed: isPosting ? null : () async {
+                  if (urlController.text.trim().isEmpty) return;
+                  setSheetState(() => isPosting = true);
+
+                  final user = Supabase.instance.client.auth.currentUser;
+                  if (user != null) {
+                    try {
+                      await Supabase.instance.client.from('artisans').update({
+                        'latest_story_url': urlController.text.trim(),
+                        'story_caption': captionController.text.trim(),
+                        'story_created_at': DateTime.now().toIso8601String(),
+                      }).eq('id', user.id);
+
+                      ref.invalidate(homeFeedProvider); // Refresh layout stream
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      setSheetState(() => isPosting = false);
+                    }
+                  }
+                },
+                child: isPosting 
+                    ? const CircularProgressIndicator(color: Colors.white) 
+                    : const Text('Publish Story', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

@@ -19,7 +19,17 @@ class HomeFeedData {
   });
 }
 
-// 2. The Hybrid Provider
+final userRoleProvider = FutureProvider<String?>((ref) async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return null;
+  final data = await Supabase.instance.client
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+  return data?['role'] as String?;
+});
+
 final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
   final String jsonString = await rootBundle.loadString(
     'assets/mock/home_feed.json',
@@ -39,20 +49,22 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
   const fallbackProduct =
       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiugxgmLGqUu6bXJiwgMidRtxyKN9zG_ujGg&s';
 
-  final safeArtisans = rawArtisans
-      .map(
-        (a) => {
-          ...a,
-          'avatar': a['profile_photo_url'] ?? fallbackAvatar,
-          'cover':
-              a['cover_photo_url'] ?? a['profile_photo_url'] ?? fallbackCover,
-          'story_post_image':
-              a['latest_story_url'] ?? a['cover_photo_url'] ?? fallbackCover,
-          'story': a['heritage_story'] ?? '',
-          'craft': 'Master Artisan',
-        },
-      )
-      .toList();
+  final processedArtisans = rawArtisans.map((a) {
+    bool isStoryValid = false;
+    if (a['story_created_at'] != null && a['latest_story_url'] != null) {
+      final createdAt = DateTime.parse(a['story_created_at'].toString());
+      isStoryValid = DateTime.now().difference(createdAt).inHours < 24;
+    }
+
+    return {
+      ...a,
+      'has_active_story': isStoryValid,
+      'avatar': a['profile_photo_url'] ?? fallbackAvatar,
+      'cover': a['cover_photo_url'] ?? a['profile_photo_url'] ?? fallbackCover,
+      'story_post_image': isStoryValid ? a['latest_story_url'] : null,
+      'story_text': isStoryValid ? (a['story_caption'] ?? '') : '',
+    };
+  }).toList();
 
   final safeProducts = rawProducts.map((p) {
     final images = p['product_images'] as List<dynamic>?;
@@ -70,10 +82,11 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
       : dynamicCategories;
 
   return HomeFeedData(
-    artisans: safeArtisans,
+    artisans:
+        processedArtisans, 
     items: safeProducts,
     promotions: localData['promotions'] ?? [],
     collections: localData['collections'] ?? [],
-    categories: finalCategories, 
+    categories: finalCategories,
   );
 });
