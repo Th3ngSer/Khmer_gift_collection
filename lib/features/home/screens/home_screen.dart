@@ -162,7 +162,7 @@ class HomeScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       Text(
-                        '${t('sort_by') ?? 'Sort'}: ',
+                        '${t('Sort by') ?? 'Sort'}: ',
                         style: TextStyle(
                             fontSize: 12,
                             color:

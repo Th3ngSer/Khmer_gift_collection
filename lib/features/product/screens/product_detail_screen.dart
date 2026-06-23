@@ -41,6 +41,50 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     setState(() => _isFav = !_isFav);
   }
 
+  Widget _buildSpecItem(BuildContext context, IconData icon, String title,
+      String value, Color accentColor) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: accentColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.5),
+                  ),
+                ),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final productAsync = ref.watch(productDetailProvider(widget.productId));
@@ -76,7 +120,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 heroHeight: heroHeight,
                 pageController: _pageController,
                 currentImageIndex: _currentImageIndex,
-                onPageChanged: (index) => setState(() => _currentImageIndex = index),
+                onPageChanged: (index) =>
+                    setState(() => _currentImageIndex = index),
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -115,10 +160,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             onPressed: _toggleFavorite,
                             icon: Icon(
                               _isFav ? Icons.favorite : Icons.favorite_border,
-                              color: _isFav ? goldColor : Theme.of(context).iconTheme.color,
+                              color: _isFav
+                                  ? goldColor
+                                  : Theme.of(context).iconTheme.color,
                             ),
                             style: IconButton.styleFrom(
-                              backgroundColor: Theme.of(context).dividerColor.withOpacity(0.1),
+                              backgroundColor: Theme.of(context)
+                                  .dividerColor
+                                  .withOpacity(0.1),
                             ),
                           ),
                         ],
@@ -130,7 +179,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         item['tagline'] ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
                         ),
                       ),
 
@@ -159,7 +211,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           Text(
                             ' (${reviews.length} reviews)',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
                               fontSize: 14,
                             ),
                           ),
@@ -185,10 +240,48 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         style: TextStyle(
                           fontSize: 15,
                           height: 1.6,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.8),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
+
+                      // NEW: Dedicated Cultural Specs Sheet Grid (Materials & Dimensions)
+                      const Text(
+                        'Specifications',
+                        style: TextStyle(
+                          fontFamily: 'serif',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSpecItem(
+                              context,
+                              Icons.texture_outlined,
+                              'Material Focus',
+                              item['material_focus'] ?? 'Traditional Craft',
+                              goldColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildSpecItem(
+                              context,
+                              Icons.straighten_outlined,
+                              'Dimensions',
+                              item['dimensions'] ?? 'Standard / Hand-cut',
+                              goldColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
 
                       // Maker / Artisan Card
                       if (artisan != null) ...[
@@ -202,14 +295,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           Icon(
                             Icons.location_on_outlined,
                             size: 16,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'Available at Riverside Atelier & 2 more',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
                             ),
                           ),
                         ],
@@ -223,9 +322,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         children: tags
                             .map(
                               (tag) => Chip(
-                                label: Text(tag, style: const TextStyle(fontSize: 12)),
+                                label: Text(tag,
+                                    style: const TextStyle(fontSize: 12)),
                                 backgroundColor: Theme.of(context).cardColor,
-                                side: BorderSide(color: Theme.of(context).dividerColor),
+                                side: BorderSide(
+                                    color: Theme.of(context).dividerColor),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
@@ -245,7 +346,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      ProductReviewsList(reviews: reviews, goldColor: goldColor),
+                      ProductReviewsList(
+                          reviews: reviews, goldColor: goldColor),
                     ],
                   ),
                 ),
