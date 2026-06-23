@@ -29,9 +29,12 @@ class ArtisanCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 26,
-              backgroundImage: NetworkImage(artisan['avatar'] ?? ''),
+            Hero(
+              tag: 'artisan-avatar-${artisan['id']}',
+              child: CircleAvatar(
+                radius: 26,
+                backgroundImage: NetworkImage(artisan['avatar'] ?? ''),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -52,16 +55,16 @@ class ArtisanCard extends StatelessWidget {
                       fontFamily: 'serif',
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                artisan['craft'] ?? '',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withOpacity(0.7),
+                    ),
+                  ),
+                  Text(
+                    artisan['craft'] ?? '',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
                     ),
                   ),
                 ],

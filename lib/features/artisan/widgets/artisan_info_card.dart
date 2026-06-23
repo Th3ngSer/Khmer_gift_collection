@@ -39,9 +39,12 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
                   shape: BoxShape.circle,
                   border: Border.all(color: goldColor, width: 2),
                 ),
-                child: CircleAvatar(
-                  radius: 32,
-                  backgroundImage: NetworkImage(a['avatar']),
+                child: Hero(
+                  tag: 'artisan-avatar-${a['id']}',
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundImage: NetworkImage(a['avatar']),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -49,13 +52,31 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      (a['region'] ?? '').toString().toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        letterSpacing: 2.0,
-                        color: goldColor,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          (a['region'] ?? '').toString().toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            letterSpacing: 2.0,
+                            color: goldColor,
+                            fontWeight:
+                                FontWeight.bold, 
+                          ),
+                        ),
+                        if (a['latitude'] != null &&
+                            a['longitude'] != null) ...[
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => context.go('/map', extra: {
+                              'lat': a['latitude'],
+                              'lng': a['longitude'],
+                            }),
+                            child: const Icon(Icons.location_pin,
+                                size: 12, color: goldColor),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
