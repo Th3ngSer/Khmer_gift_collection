@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../order/providers/cart_provider.dart';
+import '../../home/providers/home_provider.dart'; // Import unified search state
 
 class ProductModel {
   final String id;
@@ -23,7 +23,7 @@ class ProductModel {
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     String? fetchedImageUrl;
     if (json['product_images'] != null && (json['product_images'] as List).isNotEmpty) {
-      fetchedImageUrl = json['product_images'][0]['image_url']; 
+      fetchedImageUrl = json['product_images'][0]['image_url'];
     }
 
     return ProductModel(
@@ -36,14 +36,13 @@ class ProductModel {
   }
 }
 
-// 2. State Provider for the selected category tab
-final selectedCategoryProvider = StateProvider<String>((ref) => 'All');
+// Renamed to avoid conflict with home_provider's selectedCategoryProvider
+final exploreCategoryProvider = StateProvider<String>((ref) => 'All');
 
-// 3. Future Provider to fetch data from Supabase
+// Future Provider to fetch data from Supabase
 final exploreProductsProvider = FutureProvider<List<ProductModel>>((ref) async {
   final supabase = Supabase.instance.client;
-  
-  // Query products and join with product_images
+
   final response = await supabase.from('products').select('''
     *,
     product_images (
@@ -52,17 +51,46 @@ final exploreProductsProvider = FutureProvider<List<ProductModel>>((ref) async {
     )
   ''');
 
-  // Convert the JSON response into a list of ProductModels
   return (response as List<dynamic>).map((item) => ProductModel.fromJson(item)).toList();
 });
 
-class ExploreScreen extends ConsumerWidget {
+class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedCategory = ref.watch(selectedCategoryProvider);
+  ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
+}
+
+class _ExploreScreenState extends ConsumerState<ExploreScreen> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controller with current shared provider value
+    final initialQuery = ref.read(searchQueryProvider);
+    _searchController = TextEditingController(text: initialQuery);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Keep text controller synchronized if cleared or modified on other screens
+    ref.listen<String>(searchQueryProvider, (previous, next) {
+      if (_searchController.text != next) {
+        _searchController.text = next;
+      }
+    });
+
+    final selectedCategory = ref.watch(exploreCategoryProvider);
     final productsAsyncValue = ref.watch(exploreProductsProvider);
+    final searchQuery = ref.watch(searchQueryProvider).toLowerCase();
+    const goldColor = Color(0xFFD4AF37);
 
     return Scaffold(
       appBar: AppBar(
@@ -73,54 +101,30 @@ class ExploreScreen extends ConsumerWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () async {
-              final products = productsAsyncValue.asData?.value ?? [];
-              if (products.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Products are still loading.')),
+            icon: Consumer(
+              builder: (context, ref, child) {
+                final cart = ref.watch(cartProvider);
+                final itemCount = cart.values.fold<int>(0, (sum, item) => sum + item.quantity);
+
+                if (itemCount == 0) {
+                  return const Icon(Icons.shopping_cart_outlined);
+                }
+
+                return Badge(
+                  label: Text(itemCount.toString()),
+                  backgroundColor: Colors.red,
+                  child: const Icon(Icons.shopping_cart_outlined),
                 );
-                return;
-              }
-
-              final selectedProduct = await showSearch<ProductModel?>(
-                context: context,
-                delegate: ProductSearchDelegate(products),
-              );
-
-              if (selectedProduct != null) {
-                context.push('/products/${selectedProduct.id}');
-              }
-            },
+              },
+            ),
+            onPressed: () => context.push('/cart'),
           ),
-
-          IconButton(
-          icon: Consumer(
-            builder: (context, ref, child) {
-              // Read the cart state
-              final cart = ref.watch(cartProvider);
-              // Calculate total items (sum of quantities)
-              final itemCount = cart.values.fold<int>(0, (sum, item) => sum + item.quantity);
-
-              if (itemCount == 0) {
-                return const Icon(Icons.shopping_cart_outlined);
-              }
-              
-              return Badge(
-                label: Text(itemCount.toString()),
-                backgroundColor: Colors.red,
-                child: const Icon(Icons.shopping_cart_outlined),
-              );
-            },
-          ),
-          onPressed: () => context.push('/cart'),
-        ),
+          const SizedBox(width: 8),
         ],
       ),
-      // Handle Loading, Error, and Data states dynamically
       body: productsAsyncValue.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+          child: CircularProgressIndicator(color: goldColor),
         ),
         error: (error, stack) => Center(
           child: Text('Error loading products: $error'),
@@ -130,17 +134,59 @@ class ExploreScreen extends ConsumerWidget {
             return const Center(child: Text('No products available yet.'));
           }
 
-          // Dynamically extract unique categories from the fetched products
           final List<String> categories = ['All'];
           categories.addAll(products.map((p) => p.category).toSet().toList());
 
-          // Filter products based on the selected category
-          final filteredProducts = selectedCategory == 'All'
-              ? products
-              : products.where((p) => p.category == selectedCategory).toList();
+          // Unified Matrix Filtering: Apply both active Category and active Search Text
+          final filteredProducts = products.where((p) {
+            final matchesCategory = selectedCategory == 'All' || p.category == selectedCategory;
+
+            final nameMatches = p.name.toLowerCase().contains(searchQuery);
+            final catMatches = p.category.toLowerCase().contains(searchQuery);
+            final matchesSearch = searchQuery.isEmpty || nameMatches || catMatches;
+
+            return matchesCategory && matchesSearch;
+          }).toList();
 
           return Column(
             children: [
+              // --- UNIFIED INLINE SEARCH BAR ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => ref.read(searchQueryProvider.notifier).updateQuery(value),
+                  decoration: InputDecoration(
+                    hintText: 'Search cultural items, crafts...',
+                    prefixIcon: const Icon(Icons.search, color: goldColor),
+                    filled: true,
+                    fillColor: Theme.of(context).cardColor,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    suffixIcon: searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              ref.read(searchQueryProvider.notifier).updateQuery('');
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: const BorderSide(color: goldColor, width: 1.5),
+                    ),
+                  ),
+                ),
+              ),
+
               // --- CATEGORY FILTER SECTION ---
               SizedBox(
                 height: 60,
@@ -157,19 +203,19 @@ class ExploreScreen extends ConsumerWidget {
                       child: ChoiceChip(
                         label: Text(category),
                         selected: isSelected,
-                        selectedColor: const Color(0xFFD4AF37).withOpacity(0.2),
+                        selectedColor: goldColor.withOpacity(0.2),
                         labelStyle: TextStyle(
-                          color: isSelected ? const Color(0xFFD4AF37) : Colors.black87,
+                          color: isSelected ? goldColor : Colors.black87,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: isSelected ? const Color(0xFFD4AF37) : Colors.grey.shade300,
+                            color: isSelected ? goldColor : Colors.grey.shade300,
                           ),
                         ),
                         onSelected: (bool selected) {
-                          ref.read(selectedCategoryProvider.notifier).state = category;
+                          ref.read(exploreCategoryProvider.notifier).state = category;
                         },
                       ),
                     );
@@ -181,7 +227,7 @@ class ExploreScreen extends ConsumerWidget {
               Expanded(
                 child: filteredProducts.isEmpty
                     ? const Center(
-                        child: Text('No products found in this category.'),
+                        child: Text('No matching products found.'),
                       )
                     : GridView.builder(
                         padding: const EdgeInsets.all(16),
@@ -225,7 +271,6 @@ class ExploreScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image (Handles Network Image from Supabase URL)
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
@@ -239,7 +284,6 @@ class ExploreScreen extends ConsumerWidget {
                     : _fallbackImage(),
               ),
             ),
-            // Product Info
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -285,73 +329,6 @@ class ExploreScreen extends ConsumerWidget {
       color: Colors.grey[200],
       width: double.infinity,
       child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
-    );
-  }
-}
-
-class ProductSearchDelegate extends SearchDelegate<ProductModel?> {
-  ProductSearchDelegate(this.products);
-
-  final List<ProductModel> products;
-
-  @override
-  String get searchFieldLabel => 'Search gifts';
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    return [
-      if (query.isNotEmpty)
-        IconButton(
-          icon: const Icon(Icons.clear),
-          onPressed: () => query = '',
-        ),
-    ];
-  }
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () => close(context, null),
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return _buildResultList(context);
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return _buildResultList(context);
-  }
-
-  Widget _buildResultList(BuildContext context) {
-    final searchQuery = query.trim().toLowerCase();
-    final filtered = searchQuery.isEmpty
-        ? products
-        : products.where((product) {
-            final combined = '${product.name} ${product.category}'.toLowerCase();
-            return combined.contains(searchQuery);
-          }).toList();
-
-    if (filtered.isEmpty) {
-      return const Center(
-        child: Text('No matching products found.'),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final product = filtered[index];
-        return ListTile(
-          title: Text(product.name),
-          subtitle: Text(product.category),
-          trailing: Text('\$${product.price.toStringAsFixed(2)}'),
-          onTap: () => close(context, product),
-        );
-      },
     );
   }
 }
