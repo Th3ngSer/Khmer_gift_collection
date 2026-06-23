@@ -57,8 +57,10 @@ class ArtisanProfileScreen extends ConsumerWidget {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(a['cover'], fit: BoxFit.cover),
-                      // Bottom-to-top gradient
+                      Hero(
+                        tag: 'artisan-cover-${a['id']}',
+                        child: Image.network(a['cover'], fit: BoxFit.cover),
+                      ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../favorites/providers/favorites_provider.dart';
 
 class ArtisanInfoCard extends ConsumerStatefulWidget {
@@ -31,7 +32,6 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Avatar, Details, and Favorite Button
           Row(
             children: [
               Container(
@@ -78,6 +78,18 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
                   ],
                 ),
               ),
+
+              // NEW: Direct Chat Room Routing CTA Button
+              IconButton(
+                onPressed: () => context.push('/chat/${a['id']}', extra: a),
+                icon: const Icon(Icons.chat_bubble_outline, color: goldColor),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.dividerColor.withOpacity(0.1),
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(width: 8),
+
               IconButton(
                 onPressed: () {
                   ref
@@ -96,7 +108,6 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
             ],
           ),
 
-          // Row 2: Metrics
           const SizedBox(height: 16),
           Row(
             children: [
