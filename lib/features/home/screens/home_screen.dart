@@ -12,6 +12,7 @@ import '../../../shared/widgets/khmer_divider.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/error_placeholder.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -720,13 +721,43 @@ class HomeScreen extends ConsumerWidget {
                       fontSize: 22,
                       fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              TextField(
-                controller: urlController,
-                decoration: InputDecoration(
-                  labelText: 'Story Image URL',
-                  hintText: 'https://images.unsplash.com/...',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+              XFile? pickedFile; 
+              
+              StatefulBuilder(
+                builder: (context, setButtonState) => InkWell(
+                  onTap: () async {
+                    final picker = ImagePicker();
+                    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                    if (file != null) {
+                      setButtonState(() => pickedFile = file);
+                    }
+                  },
+                  child: Container(
+                    height: 120,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300, style: BorderStyle.dashed),
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey.shade50,
+                    ),
+                    child: pickedFile == null 
+                        ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cloud_upload_outlined, size: 32, color: Color(0xFF8C2D19)),
+                              SizedBox(height: 8),
+                              Text('Tap to Select Photo from Gallery', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                            ],
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('Image Selected Successfully!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                            ],
+                          ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -751,20 +782,29 @@ class HomeScreen extends ConsumerWidget {
                   onPressed: isPosting
                       ? null
                       : () async {
-                          if (urlController.text.trim().isEmpty) return;
+                          if (pickedFile == null) return; // Guard rule check
                           setSheetState(() => isPosting = true);
 
-                          final user =
-                              Supabase.instance.client.auth.currentUser;
+                          final user = Supabase.instance.client.auth.currentUser;
                           if (user != null) {
                             try {
-                              await Supabase.instance.client
-                                  .from('artisans')
-                                  .update({
-                                'latest_story_url': urlController.text.trim(),
+                              final supabase = Supabase.instance.client;
+                              final fileBytes = await pickedFile!.readAsBytes();
+                              final fileExtension = pickedFile!.name.split('.').last;
+                              final String storagePath = '${user.id}/story_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+
+                              await supabase.storage.from('stories').uploadBinary(
+                                    storagePath,
+                                    fileBytes,
+                                    fileOptions: FileOptions(contentType: 'image/$fileExtension'),
+                                  );
+
+                              final String publicUrl = supabase.storage.from('stories').getPublicUrl(storagePath);
+
+                              await supabase.from('artisans').update({
+                                'latest_story_url': publicUrl, // 👈 SAVES GENERATED LINK
                                 'story_caption': captionController.text.trim(),
-                                'story_created_at':
-                                    DateTime.now().toIso8601String(),
+                                'story_created_at': DateTime.now().toIso8601String(),
                               }).eq('id', user.id);
 
                               ref.invalidate(

@@ -14,6 +14,7 @@ dependencies:
 
   flutter:
     sdk: flutter
+  image_picker: ^1.1.2
 
   # Backend & Auth (Developer 3)
   supabase_flutter: ^2.12.4 # Double check latest version on pub.dev
