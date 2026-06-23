@@ -22,7 +22,8 @@ class ProductModel {
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     String? fetchedImageUrl;
-    if (json['product_images'] != null && (json['product_images'] as List).isNotEmpty) {
+    if (json['product_images'] != null &&
+        (json['product_images'] as List).isNotEmpty) {
       fetchedImageUrl = json['product_images'][0]['image_url'];
     }
 
@@ -30,16 +31,27 @@ class ProductModel {
       id: json['id'],
       name: json['name'],
       category: json['category'],
-      price: json['price'] != null ? double.parse(json['price'].toString()) : 0.0,
+      price:
+          json['price'] != null ? double.parse(json['price'].toString()) : 0.0,
       imageUrl: fetchedImageUrl,
     );
   }
 }
 
-// Renamed to avoid conflict with home_provider's selectedCategoryProvider
-final exploreCategoryProvider = StateProvider<String>((ref) => 'All');
+class ExploreCategoryNotifier extends Notifier<String> {
+  @override
+  String build() => 'All';
 
-// Future Provider to fetch data from Supabase
+  void selectCategory(String category) {
+    state = category;
+  }
+}
+
+final exploreCategoryProvider =
+    NotifierProvider<ExploreCategoryNotifier, String>(() {
+  return ExploreCategoryNotifier();
+});
+
 final exploreProductsProvider = FutureProvider<List<ProductModel>>((ref) async {
   final supabase = Supabase.instance.client;
 
@@ -51,7 +63,9 @@ final exploreProductsProvider = FutureProvider<List<ProductModel>>((ref) async {
     )
   ''');
 
-  return (response as List<dynamic>).map((item) => ProductModel.fromJson(item)).toList();
+  return (response as List<dynamic>)
+      .map((item) => ProductModel.fromJson(item))
+      .toList();
 });
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -104,7 +118,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             icon: Consumer(
               builder: (context, ref, child) {
                 final cart = ref.watch(cartProvider);
-                final itemCount = cart.values.fold<int>(0, (sum, item) => sum + item.quantity);
+                final itemCount = cart.values
+                    .fold<int>(0, (sum, item) => sum + item.quantity);
 
                 if (itemCount == 0) {
                   return const Icon(Icons.shopping_cart_outlined);
@@ -139,11 +154,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
           // Unified Matrix Filtering: Apply both active Category and active Search Text
           final filteredProducts = products.where((p) {
-            final matchesCategory = selectedCategory == 'All' || p.category == selectedCategory;
+            final matchesCategory =
+                selectedCategory == 'All' || p.category == selectedCategory;
 
             final nameMatches = p.name.toLowerCase().contains(searchQuery);
             final catMatches = p.category.toLowerCase().contains(searchQuery);
-            final matchesSearch = searchQuery.isEmpty || nameMatches || catMatches;
+            final matchesSearch =
+                searchQuery.isEmpty || nameMatches || catMatches;
 
             return matchesCategory && matchesSearch;
           }).toList();
@@ -152,10 +169,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             children: [
               // --- UNIFIED INLINE SEARCH BAR ---
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: TextField(
                   controller: _searchController,
-                  onChanged: (value) => ref.read(searchQueryProvider.notifier).updateQuery(value),
+                  onChanged: (value) =>
+                      ref.read(searchQueryProvider.notifier).updateQuery(value),
                   decoration: InputDecoration(
                     hintText: 'Search cultural items, crafts...',
                     prefixIcon: const Icon(Icons.search, color: goldColor),
@@ -166,22 +185,27 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         ? IconButton(
                             icon: const Icon(Icons.clear, size: 18),
                             onPressed: () {
-                              ref.read(searchQueryProvider.notifier).updateQuery('');
+                              ref
+                                  .read(searchQueryProvider.notifier)
+                                  .updateQuery('');
                               _searchController.clear();
                             },
                           )
                         : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                      borderSide:
+                          BorderSide(color: Theme.of(context).dividerColor),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                      borderSide:
+                          BorderSide(color: Theme.of(context).dividerColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
-                      borderSide: const BorderSide(color: goldColor, width: 1.5),
+                      borderSide:
+                          const BorderSide(color: goldColor, width: 1.5),
                     ),
                   ),
                 ),
@@ -192,7 +216,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 height: 60,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
                     final category = categories[index];
@@ -206,16 +231,20 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         selectedColor: goldColor.withOpacity(0.2),
                         labelStyle: TextStyle(
                           color: isSelected ? goldColor : Colors.black87,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: isSelected ? goldColor : Colors.grey.shade300,
+                            color:
+                                isSelected ? goldColor : Colors.grey.shade300,
                           ),
                         ),
                         onSelected: (bool selected) {
-                          ref.read(exploreCategoryProvider.notifier).state = category;
+                          ref
+                              .read(exploreCategoryProvider.notifier)
+                              .selectCategory(category);
                         },
                       ),
                     );
@@ -231,7 +260,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       )
                     : GridView.builder(
                         padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           childAspectRatio: 0.75,
                           crossAxisSpacing: 16,
@@ -273,13 +303,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: product.imageUrl != null && product.imageUrl!.isNotEmpty
                     ? Image.network(
                         product.imageUrl!,
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) => _fallbackImage(),
+                        errorBuilder: (context, error, stackTrace) =>
+                            _fallbackImage(),
                       )
                     : _fallbackImage(),
               ),
@@ -328,7 +360,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     return Container(
       color: Colors.grey[200],
       width: double.infinity,
-      child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
+      child:
+          const Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
     );
   }
 }
