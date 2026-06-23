@@ -306,14 +306,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(16)),
                 child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        product.imageUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _fallbackImage(),
+                    ? Hero(
+                        tag:
+                            'product-img-${product.id}', // Unique animation identifier
+                        child: Image.network(
+                          product.imageUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _fallbackImage(),
+                        ),
                       )
-                    : _fallbackImage(),
+                    : Hero(
+                        tag: 'product-img-${product.id}',
+                        child: _fallbackImage(),
+                      ),
               ),
             ),
             Padding(

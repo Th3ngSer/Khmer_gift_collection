@@ -58,7 +58,7 @@ class ProductHeroHeader extends StatelessWidget {
               onPageChanged: onPageChanged,
               itemCount: imageUrls.length,
               itemBuilder: (context, index) {
-                return Image.network(
+                final imageWidget = Image.network(
                   imageUrls[index],
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
@@ -72,6 +72,19 @@ class ProductHeroHeader extends StatelessWidget {
                     ),
                   ),
                 );
+
+                // Connect only the primary leading image to the grid card's Hero anchor
+                if (index == 0) {
+                  return Hero(
+                    tag: 'product-img-${item['id']}',
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: imageWidget,
+                    ),
+                  );
+                }
+
+                return imageWidget;
               },
             ),
             const DecoratedBox(
