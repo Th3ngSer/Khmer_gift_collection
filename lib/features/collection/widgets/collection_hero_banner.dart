@@ -58,10 +58,15 @@ class CollectionHeroBanner extends ConsumerWidget {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            // The Cover Image
-            Image.network(
-              collection['cover'] ?? 'https://via.placeholder.com/400',
-              fit: BoxFit.cover,
+            Hero(
+              tag: 'collection-cover-${collection['id']}',
+              child: Material(
+                type: MaterialType.transparency,
+                child: Image.network(
+                  collection['cover'] ?? 'https://via.placeholder.com/400',
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
 
             DecoratedBox(

@@ -26,10 +26,8 @@ class CollectionDetailScreen extends ConsumerWidget {
 
           return CustomScrollView(
             slivers: [
-              // 1. Extracted Hero Banner
               CollectionHeroBanner(collection: c),
 
-              // 2. Extracted Info & Divider Section
               SliverToBoxAdapter(
                 child: CollectionInfoSection(
                   description: c['description'] ?? '',
@@ -37,7 +35,6 @@ class CollectionDetailScreen extends ConsumerWidget {
                 ),
               ),
 
-              // 3. The Product Grid
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
                 sliver: SliverGrid(
@@ -45,7 +42,7 @@ class CollectionDetailScreen extends ConsumerWidget {
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.75,
+                    childAspectRatio: 0.60,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => ProductCard(item: products[index]),
