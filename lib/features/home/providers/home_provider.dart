@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class HomeFeedData {
   final List<dynamic> artisans;
@@ -20,7 +21,9 @@ class HomeFeedData {
 }
 
 final userRoleProvider = FutureProvider<String?>((ref) async {
-  final user = Supabase.instance.client.auth.currentUser;
+  final authState = ref.watch(authProvider);
+  final user = authState.value;
+
   if (user == null) return null;
   final data = await Supabase.instance.client
       .from('users')
@@ -82,8 +85,7 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
       : dynamicCategories;
 
   return HomeFeedData(
-    artisans:
-        processedArtisans, 
+    artisans: processedArtisans,
     items: safeProducts,
     promotions: localData['promotions'] ?? [],
     collections: localData['collections'] ?? [],
