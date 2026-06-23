@@ -10,6 +10,7 @@ import '../widgets/product_hero_header.dart';
 import '../widgets/artisan_card.dart';
 import '../widgets/product_reviews_list.dart';
 import '../widgets/product_bottom_cta.dart';
+import '../widgets/write_review_sheet.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -365,15 +366,42 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             .toList(),
                       ),
 
-                      // Embedded Reviews Section
+                      // Embedded Reviews Section Header Row
                       const SizedBox(height: 32),
-                      const Text(
-                        'Reviews',
-                        style: TextStyle(
-                          fontFamily: 'serif',
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Reviews',
+                            style: TextStyle(
+                              fontFamily: 'serif',
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(24)),
+                                ),
+                                builder: (context) => WriteReviewSheet(
+                                    productId: widget.productId),
+                              );
+                            },
+                            icon: const Icon(Icons.rate_review_outlined,
+                                size: 18, color: goldColor),
+                            label: const Text(
+                              'Write Review',
+                              style: TextStyle(
+                                  color: goldColor,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       ProductReviewsList(
