@@ -42,6 +42,7 @@ final quizResultsProvider = Provider<Map<String, List<dynamic>>>((ref) {
   final questions = questionsAsync.value!;
   final items = homeDataAsync.value!.items;
 
+  // 1. Gather all active target tags selected by the user
   final Set<String> desiredTags = {};
   for (final q in questions) {
     final answerId = answers[q['id']];
@@ -57,41 +58,72 @@ final quizResultsProvider = Provider<Map<String, List<dynamic>>>((ref) {
     }
   }
 
-  final mockTagsList = [
-    'her',
-    'him',
-    'luxury',
-    'elegant',
-    'traditional',
-    'modern',
-    'gift-under-50',
-  ];
-
+  // 2. Score items using a high-fidelity fuzzy matrix
   final List<Map<String, dynamic>> scoredItems = items.map((it) {
-    final List<String> itemTags = [
+    final double price = double.tryParse((it['price'] ?? 0).toString()) ?? 0.0;
+    
+    // Flatten item attributes into a lowercased search stream
+    final List<String> itemAttributes = [
       (it['category'] ?? '').toString().toLowerCase(),
       (it['target_recipient'] ?? '').toString().toLowerCase(),
       (it['material_focus'] ?? '').toString().toLowerCase(),
       (it['stylistic_vibe'] ?? '').toString().toLowerCase(),
       (it['budget_bracket'] ?? '').toString().toLowerCase(),
-    ]..removeWhere((tag) => tag.isEmpty);
+      (it['description'] ?? '').toString().toLowerCase(),
+    ]..removeWhere((attr) => attr.isEmpty);
 
-    final matchedTags = itemTags.where((t) => desiredTags.contains(t)).toList();
+    final List<String> matchedTags = [];
 
-    return {'item': it, 'score': matchedTags.length, 'matched': matchedTags};
+    for (final desiredTag in desiredTags) {
+      final tagLower = desiredTag.toLowerCase().trim();
+      bool isMatch = false;
+
+      // Rule A: Cross-attribute partial token string inspection
+      if (itemAttributes.any((attr) => attr.contains(tagLower) || tagLower.contains(attr))) {
+        isMatch = true;
+      }
+
+      // Rule B: Dynamic evaluation for price point bracket queries
+      if (tagLower == 'gift-under-50' || tagLower == 'under-50' || tagLower == 'budget') {
+        if (price <= 50.0) isMatch = true;
+      }
+
+      // Rule C: Dynamic evaluation for luxury parameters
+      if (tagLower == 'luxury' || tagLower == 'premium') {
+        if (price > 100.0 || itemAttributes.contains('premium') || itemAttributes.contains('luxury')) {
+          isMatch = true;
+        }
+      }
+
+      if (isMatch) {
+        matchedTags.add(desiredTag);
+      }
+    }
+
+    return {
+      'item': it,
+      'score': matchedTags.length,
+      'matched': matchedTags,
+    };
   }).toList();
 
+  // 3. Sort prioritized items strictly by match volume first, then break ties using star reviews
   scoredItems.sort((a, b) {
     final scoreComparison = (b['score'] as int).compareTo(a['score'] as int);
     if (scoreComparison != 0) return scoreComparison;
-
-    final ratingA = a['item']['rating'] ?? 0.0;
-    final ratingB = b['item']['rating'] ?? 0.0;
+    
+    final ratingA = double.tryParse((a['item']['rating'] ?? 0.0).toString()) ?? 0.0;
+    final ratingB = double.tryParse((b['item']['rating'] ?? 0.0).toString()) ?? 0.0;
     return ratingB.compareTo(ratingA);
   });
 
-  final top = scoredItems.take(4).toList();
-  final rest = scoredItems.skip(4).take(6).toList();
+  // 4. Distribute results logically into high-match tiers and fallback recommendations
+  final top = scoredItems.where((m) => (m['score'] as int) > 0).take(4).toList();
+  
+  // If no items match user specifications perfectly, provide highly rated fallbacks
+  final rest = top.isEmpty 
+      ? scoredItems.take(6).toList()
+      : scoredItems.where((m) => !top.contains(m)).take(6).toList();
 
   return {'top': top, 'rest': rest};
 });
