@@ -21,14 +21,14 @@ class AuthNotifier extends StreamNotifier<User?> {
     if (uid == null) return;
 
     final String assignedRole = isArtisan ? 'artisan' : 'customer';
-    await supabase.from('users').insert({
+    await supabase.from('users').upsert({
       'id': uid,
       'email': email,
       'role': assignedRole,
     });
 
     if (isArtisan) {
-      await supabase.from('artisans').insert({
+      await supabase.from('artisans').upsert({
         'id': uid,
         'name': name,
         'region': 'Phnom Penh', // Default fallback region for demo
