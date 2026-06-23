@@ -39,8 +39,17 @@ class HomeScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(homeFeedProvider),
         ),
         data: (data) {
-          final trending = data.items.take(4).toList();
-          final recommended = data.items.reversed.take(4).toList();
+          final selectedCategory = ref.watch(selectedCategoryProvider);
+
+          final filteredItems = selectedCategory == null
+              ? data.items
+              : data.items
+                  .where((item) => item['category'] == selectedCategory)
+                  .toList();
+
+          final trending = filteredItems.take(4).toList();
+          final recommended = filteredItems.reversed.take(4).toList();
+
           final activeStories = data.artisans
               .where((a) => a['has_active_story'] == true)
               .map((a) => {

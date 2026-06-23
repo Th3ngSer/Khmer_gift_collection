@@ -92,3 +92,17 @@ final homeFeedProvider = FutureProvider<HomeFeedData>((ref) async {
     categories: finalCategories,
   );
 });
+
+class CategoryNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void selectCategory(String? category) {
+    state = category;
+  }
+}
+
+final selectedCategoryProvider = NotifierProvider<CategoryNotifier, String?>(() {
+  return CategoryNotifier();
+});
+

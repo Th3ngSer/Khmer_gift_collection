@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
+  static const Color gold = AppColors.gold;
+  static const Color terracotta = AppColors.terracotta;
+  static const Color deepEarth = AppColors.deepEarth;
+  static const Color darkBg = AppColors.darkBg;
+  static const Color darkCard = AppColors.darkCard;
+
   static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
