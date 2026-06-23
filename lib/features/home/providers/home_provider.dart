@@ -118,3 +118,18 @@ class SearchQueryNotifier extends Notifier<String> {
 final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(() {
   return SearchQueryNotifier();
 });
+
+enum ProductSortOrder { defaultOrder, priceLowToHigh, priceHighToBottom }
+
+class HomeSortNotifier extends Notifier<ProductSortOrder> {
+  @override
+  ProductSortOrder build() => ProductSortOrder.defaultOrder;
+
+  void changeSortOrder(ProductSortOrder newOrder) {
+    state = newOrder;
+  }
+}
+
+final homeSortProvider = NotifierProvider<HomeSortNotifier, ProductSortOrder>(() {
+  return HomeSortNotifier();
+});
