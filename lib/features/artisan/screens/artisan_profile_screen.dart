@@ -6,7 +6,6 @@ import '../providers/artisan_provider.dart';
 import '../widgets/artisan_info_card.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
-import '../../favorites/providers/favorites_provider.dart';
 
 class ArtisanProfileScreen extends ConsumerWidget {
   final String artisanId;
@@ -29,10 +28,6 @@ class ArtisanProfileScreen extends ConsumerWidget {
         data: (data) {
           final a = data.artisan;
           final works = data.works;
-
-          final favsState = ref.watch(favoritesProvider);
-          final bool isFav = favsState.artisans.contains(a['id'].toString());
-
           return CustomScrollView(
             slivers: [
               // 1. The 4:3 Hero Image with Overlapping Rounded Corners

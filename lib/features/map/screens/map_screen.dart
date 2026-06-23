@@ -67,7 +67,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       perm = await Geolocator.requestPermission();
     }
     if (perm == LocationPermission.denied ||
-        perm == LocationPermission.deniedForever) return;
+        perm == LocationPermission.deniedForever) {
+      return;
+    }
     final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     final ll = LatLng(pos.latitude, pos.longitude);

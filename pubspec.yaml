@@ -34,6 +34,7 @@ dependencies:
   go_router: ^17.2.3
   video_player: ^2.8.1 # For Workshop Reels
   shimmer: ^3.0.0 # For better loading states
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

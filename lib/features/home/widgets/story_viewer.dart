@@ -222,8 +222,9 @@ class _StoryViewerState extends State<StoryViewer>
                         builder: (context, child) {
                           double progress = 0.0;
                           if (index < _currentIndex) progress = 1.0;
-                          if (index == _currentIndex)
+                          if (index == _currentIndex) {
                             progress = _animController.value;
+                          }
 
                           return LinearProgressIndicator(
                             value: progress,
