@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/product_detail_provider.dart';
+import '../../favorites/providers/favorites_provider.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 
@@ -21,7 +22,6 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
-  bool _isFav = false;
   late PageController _pageController;
   int _currentImageIndex = 0;
 
@@ -37,57 +37,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     super.dispose();
   }
 
-  void _toggleFavorite() {
-    setState(() => _isFav = !_isFav);
-  }
-
-  Widget _buildSpecItem(BuildContext context, IconData icon, String title,
-      String value, Color accentColor) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: accentColor),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.5),
-                  ),
-                ),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _toggleFavorite() async {
+    await ref.read(favoritesProvider.notifier).toggleItem(widget.productId);
   }
 
   @override
   Widget build(BuildContext context) {
     final productAsync = ref.watch(productDetailProvider(widget.productId));
+    final isFav = ref.watch(favoritesProvider).items.contains(widget.productId);
+
     const goldColor = Color(0xFFD4AF37);
     final heroHeight = MediaQuery.of(context).size.width * (5 / 4);
 
@@ -95,7 +53,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: ProductBottomCTA(
         item: productAsync.value?.product,
-        isFav: _isFav,
+        isFav: isFav,
         onFavPressed: _toggleFavorite,
       ),
       body: productAsync.when(
@@ -159,8 +117,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           IconButton(
                             onPressed: _toggleFavorite,
                             icon: Icon(
-                              _isFav ? Icons.favorite : Icons.favorite_border,
-                              color: _isFav
+                              isFav ? Icons.favorite : Icons.favorite_border,
+                              color: isFav
                                   ? goldColor
                                   : Theme.of(context).iconTheme.color,
                             ),
@@ -261,22 +219,94 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: _buildSpecItem(
-                              context,
-                              Icons.texture_outlined,
-                              'Material Focus',
-                              item['material_focus'] ?? 'Traditional Craft',
-                              goldColor,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    color: Theme.of(context).dividerColor),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.texture_outlined,
+                                      size: 20, color: goldColor),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Material Focus',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.5),
+                                          ),
+                                        ),
+                                        Text(
+                                          item['material_focus'] ??
+                                              'Traditional Craft',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _buildSpecItem(
-                              context,
-                              Icons.straighten_outlined,
-                              'Dimensions',
-                              item['dimensions'] ?? 'Standard / Hand-cut',
-                              goldColor,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    color: Theme.of(context).dividerColor),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.straighten_outlined,
+                                      size: 20, color: goldColor),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Dimensions',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.5),
+                                          ),
+                                        ),
+                                        Text(
+                                          item['dimensions'] ??
+                                              'Standard / Hand-cut',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
