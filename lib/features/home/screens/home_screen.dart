@@ -40,15 +40,25 @@ class HomeScreen extends ConsumerWidget {
         ),
         data: (data) {
           final selectedCategory = ref.watch(selectedCategoryProvider);
+          final searchQuery = ref.watch(searchQueryProvider).toLowerCase();
 
-          final filteredItems = selectedCategory == null
-              ? data.items
-              : data.items
-                  .where((item) => item['category'] == selectedCategory)
-                  .toList();
+          final filteredItems = data.items.where((item) {
+            final matchesCategory = selectedCategory == null ||
+                item['category'] == selectedCategory;
+
+            final itemName = (item['name'] ?? '').toString().toLowerCase();
+            final itemDesc =
+                (item['description'] ?? '').toString().toLowerCase();
+            final matchesSearch = searchQuery.isEmpty ||
+                itemName.contains(searchQuery) ||
+                itemDesc.contains(searchQuery);
+
+            return matchesCategory && matchesSearch;
+          }).toList();
 
           final trending = filteredItems.take(4).toList();
-          final recommended = filteredItems.reversed.take(4).toList();
+          final recommendationSource = filteredItems.reversed.toList();
+          final recommended = recommendationSource.take(4).toList();
 
           final activeStories = data.artisans
               .where((a) => a['has_active_story'] == true)
@@ -73,9 +83,7 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      locale == 'km'
-                          ? 'សួស្តី'
-                          : 'សួស្តី · ${t('welcome_greeting')}',
+                      locale == 'km' ? 'សូមស្វាគមន៍' : 'WELCOME TO',
                       style: const TextStyle(
                         fontSize: 10,
                         letterSpacing: 2.0,
@@ -95,10 +103,6 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {},
-                  ),
-                  IconButton(
                     icon: const Icon(Icons.notifications_none),
                     onPressed: () => context.push('/chat'),
                   ),
@@ -114,6 +118,42 @@ class HomeScreen extends ConsumerWidget {
                     StoryRail(
                       stories: activeStories,
                       role: userRoleAsync.value ?? 'customer',
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: TextField(
+                        onChanged: (value) => ref
+                            .read(searchQueryProvider.notifier)
+                            .updateQuery(value),
+                        decoration: InputDecoration(
+                          hintText: locale == 'km'
+                              ? 'ស្វែងរកកាដូ ឬវត្ថុអនុស្សាវរីយ៍...'
+                              : 'Search cultural items, crafts...',
+                          prefixIcon:
+                              const Icon(Icons.search, color: goldColor),
+                          filled: true,
+                          fillColor: Theme.of(context).cardColor,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide(
+                                color: Theme.of(context).dividerColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide(
+                                color: Theme.of(context).dividerColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide:
+                                const BorderSide(color: goldColor, width: 1.5),
+                          ),
+                        ),
+                      ),
                     ),
 
                     // 3. Gift Finder CTA
@@ -139,7 +179,11 @@ class HomeScreen extends ConsumerWidget {
               SliverToBoxAdapter(
                 child: SectionHeader(
                   title: t('trending_now'),
-                  subtitle: t('loved_week'),
+                  subtitle: filteredItems.isEmpty
+                      ? (locale == 'km'
+                          ? 'រកមិនឃើញទិន្នន័យទេ'
+                          : 'No items found matching criteria')
+                      : t('loved_week'),
                 ),
               ),
               _buildProductGrid(trending),

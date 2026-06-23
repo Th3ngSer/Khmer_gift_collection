@@ -106,3 +106,15 @@ final selectedCategoryProvider = NotifierProvider<CategoryNotifier, String?>(() 
   return CategoryNotifier();
 });
 
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void updateQuery(String query) {
+    state = query;
+  }
+}
+
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(() {
+  return SearchQueryNotifier();
+});
