@@ -37,16 +37,14 @@ class _WriteReviewSheetState extends ConsumerState<WriteReviewSheet> {
     try {
       final supabase = Supabase.instance.client;
       
-      // Insert review record directly into your backend database table
       await supabase.from('reviews').insert({
         'product_id': widget.productId,
-        'user_id': user.id,
+        'customer_id': user.id, 
         'rating': _selectedRating,
         'review_text': _textController.text.trim(),
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      // Invalidate the detail provider to force an automatic layout update
       ref.invalidate(productDetailProvider(widget.productId));
 
       if (mounted) {
