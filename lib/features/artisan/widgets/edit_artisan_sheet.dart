@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/artisan_provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class EditArtisanSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic> artisan;
@@ -27,6 +29,8 @@ class _EditArtisanSheetState extends ConsumerState<EditArtisanSheet> {
 
   XFile? _coverImage;
   Uint8List? _coverBytes;
+  LatLng? _selectedLocation;
+  final LatLng _defaultLocation = const LatLng(13.3633, 103.8564);
 
   @override
   void initState() {
@@ -36,6 +40,12 @@ class _EditArtisanSheetState extends ConsumerState<EditArtisanSheet> {
     _regionController = TextEditingController(text: widget.artisan['region']);
     _storyController = TextEditingController(
         text: widget.artisan['heritage_story'] ?? widget.artisan['story']);
+
+    final lat = widget.artisan['latitude'] as double?;
+    final lng = widget.artisan['longitude'] as double?;
+    if (lat != null && lng != null) {
+      _selectedLocation = LatLng(lat, lng);
+    }
   }
 
   @override
@@ -80,6 +90,11 @@ class _EditArtisanSheetState extends ConsumerState<EditArtisanSheet> {
         'heritage_story': _storyController.text.trim(),
       };
 
+      if (_selectedLocation != null) {
+        updateData['latitude'] = _selectedLocation!.latitude;
+        updateData['longitude'] = _selectedLocation!.longitude;
+      }
+
       // 2. Upload Profile Photo if changed
       if (_profileImage != null && _profileBytes != null) {
         final ext = _profileImage!.name.split('.').last;
@@ -114,7 +129,7 @@ class _EditArtisanSheetState extends ConsumerState<EditArtisanSheet> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Profile updated successfully!'),
+              content: Text('Profile & Location updated!'),
               backgroundColor: Colors.green),
         );
       }
@@ -288,6 +303,58 @@ class _EditArtisanSheetState extends ConsumerState<EditArtisanSheet> {
                     maxLines: 4,
                     decoration: _inputDecoration('Your Heritage Story'),
                   ),
+                  const SizedBox(height: 24),
+
+                  // --- INTERACTIVE MAP PICKER ---
+                  const Text('Workshop Location',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppTheme.gold)),
+                  const SizedBox(height: 4),
+                  const Text('Tap on the map below to pin your exact location.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 220,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: Colors.grey.shade300, width: 1.5),
+                    ),
+                    clipBehavior: Clip.hardEdge,
+                    child: FlutterMap(
+                      options: MapOptions(
+                        initialCenter: _selectedLocation ?? _defaultLocation,
+                        initialZoom: 13.0,
+                        onTap: (tapPosition, point) {
+                          setState(() {
+                            _selectedLocation = point;
+                          });
+                        },
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.khmergiftcollection.app',
+                        ),
+                        if (_selectedLocation != null)
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _selectedLocation!,
+                                width: 50,
+                                height: 50,
+                                child: const Icon(Icons.location_pin,
+                                    color: AppTheme.gold, size: 45),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -320,7 +387,7 @@ class _EditArtisanSheetState extends ConsumerState<EditArtisanSheet> {
                 onPressed: _isSaving ? null : _saveProfile,
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Profile & Images',
+                    : const Text('Save Profile & Location',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
               ),
