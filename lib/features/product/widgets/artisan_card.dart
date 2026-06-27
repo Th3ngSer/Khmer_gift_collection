@@ -46,50 +46,45 @@ class ArtisanCard extends ConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              (artisan['region'] ?? 'CAMBODIA').toString().toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 1.5,
-                color: goldColor,
-                fontWeight: FontWeight.bold,
+            Hero(
+              tag: 'artisan-avatar-${artisan['id']}',
+              child: CircleAvatar(
+                radius: 26,
+                backgroundImage: NetworkImage(artisan['avatar'] ?? ''),
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              artisan['name'] ?? 'Artisan',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, fontFamily: 'serif'),
-            ),
-          ],
-        ),
-        subtitle: Text(
-          artisan['craft'] ?? 'Master Artisan',
-          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withAlpha(150)),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Chat Icon Button
-            Container(
-              decoration: BoxDecoration(
-                color: AppTheme.gold.withAlpha(30),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppTheme.gold, size: 22),
-                onPressed: () {
-                  final roomId = 'room_${artisan['name']}';
-                  ref.read(chatProvider.notifier).initiateChat(
-                    roomId, 
-                    artisan['name'] ?? 'Artisan', 
-                    artisan['avatar'] ?? artisan['cover'] ?? 'https://i.pravatar.cc/150'
-                  );
-                  context.push('/chat-room/$roomId', extra: {
-                    'currentUserId': 'user_123',
-                    'artisanName': artisan['name'] ?? 'Artisan',
-                    'productContext': productContext,
-                  });
-                },
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (artisan['region'] ?? '').toString().toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      letterSpacing: 2.0,
+                      color: goldColor,
+                    ),
+                  ),
+                  Text(
+                    artisan['name'] ?? '',
+                    style: const TextStyle(
+                      fontFamily: 'serif',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    artisan['craft'] ?? '',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 8),

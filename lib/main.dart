@@ -51,8 +51,6 @@ class TestConnectionScreen extends StatefulWidget {
 class _TestConnectionScreenState extends State<TestConnectionScreen> {
   final _supabase = Supabase.instance.client;
   List<dynamic> _products = [];
-  String? _errorMessage;
-  bool _isLoading = true;
 
   @override
   void initState() {

@@ -8,6 +8,9 @@ import '../../../core/providers/notification_provider.dart';
 import '../../../features/favorites/providers/favorites_provider.dart';
 import '../../../core/constants/translations.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../artisan/providers/artisan_provider.dart';
+import '../../artisan/widgets/edit_artisan_sheet.dart';
+import '../../artisan/widgets/upload_product_sheet.dart';
 
 class UserProfileScreen extends ConsumerWidget {
   const UserProfileScreen({super.key});
@@ -18,6 +21,25 @@ class UserProfileScreen extends ConsumerWidget {
     final isDark = themeMode == ThemeMode.dark;
     final locale = ref.watch(localeProvider).languageCode;
     final user = Supabase.instance.client.auth.currentUser;
+    final isArtisanRole = user != null &&
+        (user.userMetadata?['role'] == 'artisan' ||
+            user.email == 'louchumdararith02@gmail.com');
+
+    final artisanState = isArtisanRole ? ref.watch(artisanProfileProvider(user.id)) : null;
+    final liveArtisanData = artisanState?.value?.artisan;
+
+    final coverUrl =
+        liveArtisanData?['cover_photo_url'] ?? liveArtisanData?['cover'];
+    final avatarUrl = liveArtisanData?['profile_photo_url'] ??
+        liveArtisanData?['avatar'] ??
+        user?.userMetadata?['avatar_url'];
+    final displayName = liveArtisanData?['name'] ??
+        user?.userMetadata?['full_name'] ??
+        'Khmer Guest';
+
+    final hasValidCover = coverUrl != null && coverUrl.startsWith('http');
+    final hasValidAvatar = avatarUrl != null && avatarUrl.startsWith('http');
+
     final favoritesCount = ref.watch(favoritesProvider).items.length;
     
     String t(String key) => Translations.translate(key, locale);
@@ -44,7 +66,8 @@ class UserProfileScreen extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      Translations.translate('select_language', selectedLocale.languageCode),
+                      Translations.translate(
+                          'select_language', selectedLocale.languageCode),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -54,21 +77,26 @@ class UserProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     ...languages.map((lang) => ListTile(
-                          leading: Text(lang.flag, style: const TextStyle(fontSize: 24)),
+                          leading: Text(lang.flag,
+                              style: const TextStyle(fontSize: 24)),
                           title: Text(
                             lang.name,
                             style: TextStyle(
-                              fontWeight: selectedLocale.languageCode == lang.code
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                              fontWeight:
+                                  selectedLocale.languageCode == lang.code
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                               color: textColor,
                             ),
                           ),
                           trailing: selectedLocale.languageCode == lang.code
-                              ? const Icon(Icons.check_circle, color: AppTheme.gold)
+                              ? const Icon(Icons.check_circle,
+                                  color: AppTheme.gold)
                               : null,
                           onTap: () {
-                            ref.read(localeProvider.notifier).setLocale(Locale(lang.code));
+                            ref
+                                .read(localeProvider.notifier)
+                                .setLocale(Locale(lang.code));
                             Navigator.pop(context);
                           },
                         )),
@@ -107,18 +135,24 @@ class UserProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: const Icon(Icons.wb_sunny_outlined, color: AppTheme.gold),
+                  leading:
+                      const Icon(Icons.wb_sunny_outlined, color: AppTheme.gold),
                   title: Text(t('light'), style: TextStyle(color: textColor)),
-                  trailing: themeMode == ThemeMode.light ? const Icon(Icons.check_circle, color: AppTheme.gold) : null,
+                  trailing: themeMode == ThemeMode.light
+                      ? const Icon(Icons.check_circle, color: AppTheme.gold)
+                      : null,
                   onTap: () {
                     ref.read(themeProvider.notifier).setTheme(ThemeMode.light);
                     Navigator.pop(context);
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.dark_mode_outlined, color: AppTheme.gold),
+                  leading: const Icon(Icons.dark_mode_outlined,
+                      color: AppTheme.gold),
                   title: Text(t('dark'), style: TextStyle(color: textColor)),
-                  trailing: themeMode == ThemeMode.dark ? const Icon(Icons.check_circle, color: AppTheme.gold) : null,
+                  trailing: themeMode == ThemeMode.dark
+                      ? const Icon(Icons.check_circle, color: AppTheme.gold)
+                      : null,
                   onTap: () {
                     ref.read(themeProvider.notifier).setTheme(ThemeMode.dark);
                     Navigator.pop(context);
@@ -160,9 +194,12 @@ class UserProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     ListTile(
-                      leading: const Icon(Icons.notifications_active_outlined, color: AppTheme.gold),
+                      leading: const Icon(Icons.notifications_active_outlined,
+                          color: AppTheme.gold),
                       title: Text(t('on'), style: TextStyle(color: textColor)),
-                      trailing: !isMuted ? const Icon(Icons.check_circle, color: AppTheme.gold) : null,
+                      trailing: !isMuted
+                          ? const Icon(Icons.check_circle, color: AppTheme.gold)
+                          : null,
                       onTap: () {
                         ref.read(notificationProvider.notifier).setMute(false);
                         Navigator.pop(context);
@@ -176,9 +213,12 @@ class UserProfileScreen extends ConsumerWidget {
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.notifications_off_outlined, color: AppTheme.gold),
+                      leading: const Icon(Icons.notifications_off_outlined,
+                          color: AppTheme.gold),
                       title: Text(t('off'), style: TextStyle(color: textColor)),
-                      trailing: isMuted ? const Icon(Icons.check_circle, color: AppTheme.gold) : null,
+                      trailing: isMuted
+                          ? const Icon(Icons.check_circle, color: AppTheme.gold)
+                          : null,
                       onTap: () {
                         ref.read(notificationProvider.notifier).setMute(true);
                         Navigator.pop(context);
@@ -230,7 +270,8 @@ class UserProfileScreen extends ConsumerWidget {
                     color: Colors.redAccent.withAlpha(20),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 32),
+                  child: const Icon(Icons.logout_rounded,
+                      color: Colors.redAccent, size: 32),
                 ),
                 const SizedBox(height: 20),
                 // Title
@@ -322,27 +363,44 @@ class UserProfileScreen extends ConsumerWidget {
         slivers: [
           // 1. "Airy" Header with Floating Avatar
           SliverAppBar(
-            expandedHeight: 180,
+            expandedHeight: 260,
             pinned: true,
             backgroundColor: scaffoldBg,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 children: [
-                  // Top Decorative Banner
+                  // Top Decorative Banner (Gradient or Artisan Cover Photo)
                   Container(
-                    height: 110,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF4A2511), Color(0xFF2A1508)],
-                      ),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(40),
-                        bottomRight: Radius.circular(40),
-                      ),
+                    height: 190,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: hasValidCover
+                          ? null
+                          : const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF4A2511), Color(0xFF2A1508)],
+                            ),
+                      image: hasValidCover
+                          ? DecorationImage(
+                              image: NetworkImage(coverUrl!), fit: BoxFit.cover)
+                          : null,
+                      borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(40),
+                          bottomRight: Radius.circular(40)),
                     ),
+                    // Add a slight dark overlay if using an image so it blends well
+                    child: hasValidCover
+                        ? Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(40),
+                                  bottomRight: Radius.circular(40)),
+                            ),
+                          )
+                        : null,
                   ),
                   // Floating Avatar
                   Align(
@@ -368,11 +426,11 @@ class UserProfileScreen extends ConsumerWidget {
                         child: CircleAvatar(
                           radius: 45,
                           backgroundColor: AppTheme.gold.withAlpha(25),
-                          backgroundImage: user?.userMetadata?['avatar_url'] != null
-                              ? NetworkImage(user!.userMetadata!['avatar_url'])
-                              : null,
-                          child: user?.userMetadata?['avatar_url'] == null
-                              ? const Icon(Icons.person, size: 50, color: AppTheme.gold)
+                          backgroundImage:
+                              hasValidAvatar ? NetworkImage(avatarUrl!) : null,
+                          child: !hasValidAvatar
+                              ? const Icon(Icons.person,
+                                  size: 50, color: AppTheme.gold)
                               : null,
                         ),
                       ),
@@ -383,19 +441,29 @@ class UserProfileScreen extends ConsumerWidget {
             ),
           ),
 
-          // 2. User Info & Stats Card
           SliverToBoxAdapter(
             child: Column(
               children: [
                 const SizedBox(height: 12),
-                Text(
-                  user?.userMetadata?['full_name'] ?? 'Khmer Guest',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'serif',
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      displayName,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'serif',
+                      ),
+                    ),
+                    if (isArtisanRole)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.verified,
+                            color: AppTheme.gold, size: 24),
+                      ),
+                  ],
                 ),
                 Text(
                   user?.email ?? 'Join the collection',
@@ -405,7 +473,7 @@ class UserProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Stats Card
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -432,6 +500,125 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+
+                if (isArtisanRole) ...[
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  final artisanData = liveArtisanData ??
+                                      {
+                                        'id': user!.id,
+                                        'name': user.userMetadata?['full_name'],
+                                        'shop_name':
+                                            user.userMetadata?['shop_name'] ??
+                                                user.userMetadata?['full_name'],
+                                      };
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(24))),
+                                    builder: (context) =>
+                                        EditArtisanSheet(artisan: artisanData),
+                                  );
+                                },
+                                icon: const Icon(Icons.edit_note,
+                                    size: 18, color: AppTheme.gold),
+                                label: const Text(
+                                  'Edit Story',
+                                  style: TextStyle(
+                                      color: AppTheme.gold,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  side: const BorderSide(color: AppTheme.gold),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(24)),
+                                    ),
+                                    builder: (context) =>
+                                        UploadProductSheet(artisanId: user.id),
+                                  );
+                                },
+                                icon: const Icon(Icons.library_add,
+                                    size: 18, color: AppTheme.gold),
+                                label: const Text(
+                                  'Add Item',
+                                  style: TextStyle(
+                                      color: AppTheme.gold,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  side: const BorderSide(color: AppTheme.gold),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final artisanData = liveArtisanData ??
+                                  {
+                                    'id': user!.id,
+                                    'name': user.userMetadata?['full_name'],
+                                    'shop_name':
+                                        user.userMetadata?['shop_name'] ??
+                                            user.userMetadata?['full_name'],
+                                  };
+                              context.push('/my_artisan_profile',
+                                  extra: artisanData);
+                            },
+                            icon: const Icon(Icons.storefront),
+                            label: const Text(
+                              'View My Shop Dashboard',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.gold,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                // >>> END OF CONDITIONAL ARTISAN DESKTOP BUTTONS DECK <<<
               ],
             ),
           ),
@@ -444,10 +631,10 @@ class UserProfileScreen extends ConsumerWidget {
                 _buildSectionTitle(t('account_settings')),
                 _buildMenuCard(cardBg, [
                   _buildMenuItem(
-                    context, 
-                    Icons.shopping_bag_outlined, 
-                    t('my_orders'), 
-                    null, 
+                    context,
+                    Icons.shopping_bag_outlined,
+                    t('my_orders'),
+                    null,
                     isDark,
                     trailing: '0 active',
                     onTap: () {
@@ -462,50 +649,56 @@ class UserProfileScreen extends ConsumerWidget {
                     },
                   ),
                   _buildMenuDivider(isDark),
-                  _buildMenuItem(context, Icons.confirmation_number_outlined, t('promotions'), '/promotions', isDark),
+                  _buildMenuItem(context, Icons.confirmation_number_outlined,
+                      t('promotions'), '/promotions', isDark),
                   _buildMenuDivider(isDark),
-                  _buildMenuItem(context, Icons.favorite_border, t('my_favorites'), '/favorites', isDark),
+                  _buildMenuItem(context, Icons.favorite_border,
+                      t('my_favorites'), '/favorites', isDark),
                   _buildMenuDivider(isDark),
-                  _buildMenuItem(context, Icons.location_on_outlined, t('shipping_addresses'), null, isDark),
+                  _buildMenuItem(context, Icons.location_on_outlined,
+                      t('shipping_addresses'), null, isDark),
                 ]),
                 const SizedBox(height: 24),
                 _buildSectionTitle(t('preferences')),
                 _buildMenuCard(cardBg, [
                   _buildMenuItem(
-                    context, 
-                    Icons.language, 
-                    t('language'), 
-                    null, 
+                    context,
+                    Icons.language,
+                    t('language'),
+                    null,
                     isDark,
-                    trailing: '${languages.firstWhere((l) => l.code == locale).flag} ${languages.firstWhere((l) => l.code == locale).name}',
+                    trailing:
+                        '${languages.firstWhere((l) => l.code == locale).flag} ${languages.firstWhere((l) => l.code == locale).name}',
                     onTap: showLanguagePicker,
                   ),
                   _buildMenuDivider(isDark),
                   _buildMenuItem(
-                    context, 
-                    Icons.notifications_none, 
-                    t('notifications'), 
-                    null, 
+                    context,
+                    Icons.notifications_none,
+                    t('notifications'),
+                    null,
                     isDark,
-                    trailing: ref.watch(notificationProvider).isMuted ? t('off') : t('on'),
+                    trailing: ref.watch(notificationProvider).isMuted
+                        ? t('off')
+                        : t('on'),
                     onTap: showNotificationPicker,
                   ),
                   _buildMenuDivider(isDark),
                   _buildMenuItem(
-                    context, 
-                    Icons.dark_mode_outlined, 
-                    t('theme'), 
-                    null, 
-                    isDark, 
+                    context,
+                    Icons.dark_mode_outlined,
+                    t('theme'),
+                    null,
+                    isDark,
                     trailing: isDark ? t('dark') : t('light'),
                     onTap: showThemePicker,
                   ),
                   _buildMenuDivider(isDark),
                   _buildMenuItem(
-                    context, 
-                    Icons.logout_rounded, 
-                    t('sign_out'), 
-                    null, 
+                    context,
+                    Icons.logout_rounded,
+                    t('sign_out'),
+                    null,
                     isDark,
                     onTap: showSignOutConfirmation,
                   ),
@@ -517,11 +710,15 @@ class UserProfileScreen extends ConsumerWidget {
           // 4. Footer Message
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1C120C) : const Color(0xFFF5EFE6),
+                  color: isDark
+                      ? const Color(0xFF1C120C)
+                      : const Color(0xFFF5EFE6),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Column(
@@ -582,20 +779,24 @@ class UserProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value, bool isDark, {bool isPoints = false}) {
+  Widget _buildStatItem(String label, String value, bool isDark,
+      {bool isPoints = false}) {
     return Column(
       children: [
         Text(
           value,
           style: TextStyle(
-            fontSize: 20, 
-            fontWeight: FontWeight.bold, 
-            color: isPoints ? AppTheme.gold : (isDark ? Colors.white : AppTheme.deepEarth),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: isPoints
+                ? AppTheme.gold
+                : (isDark ? Colors.white : AppTheme.deepEarth),
           ),
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.black38),
+          style: TextStyle(
+              fontSize: 12, color: isDark ? Colors.white38 : Colors.black38),
         ),
       ],
     );
@@ -616,14 +817,9 @@ class UserProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMenuItem(
-    BuildContext context, 
-    IconData icon, 
-    String title, 
-    String? route, 
-    bool isDark,
-    {String? trailing, VoidCallback? onTap}
-  ) {
+  Widget _buildMenuItem(BuildContext context, IconData icon, String title,
+      String? route, bool isDark,
+      {String? trailing, VoidCallback? onTap}) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: Container(
@@ -632,13 +828,14 @@ class UserProfileScreen extends ConsumerWidget {
           color: AppTheme.gold.withAlpha(25),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: isDark ? Colors.white : AppTheme.deepEarth, size: 20),
+        child: Icon(icon,
+            color: isDark ? Colors.white : AppTheme.deepEarth, size: 20),
       ),
       title: Text(
         title,
         style: TextStyle(
-          fontSize: 15, 
-          fontWeight: FontWeight.w500, 
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
           color: isDark ? Colors.white : AppTheme.deepEarth,
         ),
       ),
@@ -648,17 +845,21 @@ class UserProfileScreen extends ConsumerWidget {
           if (trailing != null)
             Text(
               trailing,
-              style: TextStyle(color: isDark ? Colors.white24 : Colors.black26, fontSize: 13),
+              style: TextStyle(
+                  color: isDark ? Colors.white24 : Colors.black26,
+                  fontSize: 13),
             ),
           const SizedBox(width: 4),
-          Icon(Icons.chevron_right, size: 18, color: isDark ? Colors.white10 : Colors.black12),
+          Icon(Icons.chevron_right,
+              size: 18, color: isDark ? Colors.white10 : Colors.black12),
         ],
       ),
-      onTap: onTap ?? () {
-        if (route != null) {
-          context.push(route);
-        }
-      },
+      onTap: onTap ??
+          () {
+            if (route != null) {
+              context.push(route);
+            }
+          },
     );
   }
 }

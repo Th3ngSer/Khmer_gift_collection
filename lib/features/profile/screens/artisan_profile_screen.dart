@@ -1,9 +1,13 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../../artisan/providers/artisan_provider.dart';
+import '../../artisan/widgets/edit_artisan_sheet.dart';
+import '../../artisan/widgets/upload_product_sheet.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../chat_reviews/providers/chat_provider.dart';
 
 class ArtisanProfileScreen extends ConsumerWidget {
@@ -13,8 +17,14 @@ class ArtisanProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Warm Earth Tones & Gold Highlights
     const goldColor = Color(0xFFD4AF37);
+    final artisanId =
+        (artisanData['id'] ?? Supabase.instance.client.auth.currentUser?.id)
+            .toString();
+
+    final liveProfileState = ref.watch(artisanProfileProvider(artisanId));
+
+    final activeData = liveProfileState.value?.artisan ?? artisanData;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -67,12 +77,12 @@ class ArtisanProfileScreen extends ConsumerWidget {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage(
-                        artisanData['photo_url'] ??
-                        artisanData['cover'] ??
-                        artisanData['avatar'] ??
-                        'https://via.placeholder.com/400'
-                      ),
+                      image: NetworkImage(activeData['photo_url'] ??
+                          artisanData['cover_photo_url'] ??
+                          artisanData['cover'] ??
+                          artisanData['avatar'] ??
+                          artisanData['profile_photo_url'] ??
+                          'https://via.placeholder.com/400'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -99,7 +109,9 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        artisanData['shop_name'] ?? artisanData['name'] ?? 'Master Craftsman',
+                        activeData['shop_name'] ??
+                            activeData['name'] ??
+                            'Master Craftsman',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 32,
@@ -109,7 +121,9 @@ class ArtisanProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        artisanData['craft_type'] ?? artisanData['craft'] ?? 'Handmade Crafts',
+                        activeData['craft_type'] ??
+                            activeData['craft'] ??
+                            'Handmade Crafts',
                         style: const TextStyle(
                           color: goldColor,
                           fontSize: 16,
@@ -133,7 +147,8 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: goldColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -141,11 +156,15 @@ class ArtisanProfileScreen extends ConsumerWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_on, size: 14, color: goldColor),
+                            const Icon(Icons.location_on,
+                                size: 14, color: goldColor),
                             const SizedBox(width: 4),
                             Text(
-                              artisanData['region'] ?? 'Cambodia',
-                              style: const TextStyle(color: goldColor, fontWeight: FontWeight.bold, fontSize: 12),
+                              activeData['region'] ?? 'Cambodia',
+                              style: const TextStyle(
+                                  color: goldColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12),
                             ),
                           ],
                         ),
@@ -169,7 +188,9 @@ class ArtisanProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    artisanData['story'] ?? 'Dedicated to preserving traditional Khmer techniques and supporting local communities through sustainable craftsmanship.',
+                    activeData['story'] ??
+                        activeData['heritage_story'] ??
+                        'Dedicated to preserving traditional Khmer techniques and supporting local communities through sustainable craftsmanship.',
                     style: TextStyle(
                       fontSize: 15,
                       height: 1.6,
@@ -195,27 +216,102 @@ class ArtisanProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        "${(artisanData['products'] as List? ?? []).length} items",
-                        style: TextStyle(color: Colors.black.withOpacity(0.4), fontSize: 13),
+                        "${(activeData['products'] as List? ?? []).length} items",
+                        style: TextStyle(
+                            color: Colors.black.withOpacity(0.4), fontSize: 13),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(24)),
+                              ),
+                              builder: (context) =>
+                                  EditArtisanSheet(artisan: activeData),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_note,
+                              size: 18, color: goldColor),
+                          label: const Text(
+                            'Edit Profile/Story',
+                            style: TextStyle(
+                                color: goldColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: goldColor),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(24)),
+                              ),
+                              builder: (context) =>
+                                  UploadProductSheet(artisanId: artisanId),
+                            );
+                          },
+                          icon: const Icon(Icons.library_add,
+                              size: 18, color: goldColor),
+                          label: const Text(
+                            'Add Item for Sale',
+                            style: TextStyle(
+                                color: goldColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: goldColor),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(child: KhmerDivider(width: 150)),
+                  ),
 
                   // Grid showing items created by this artisan
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     padding: EdgeInsets.zero,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       childAspectRatio: 0.68,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 24,
                     ),
-                    itemCount: (artisanData['products'] as List? ?? []).length,
+                    itemCount: (activeData['products'] as List? ?? []).length,
                     itemBuilder: (context, index) {
-                      final product = artisanData['products'][index];
+                      final product = activeData['products'][index];
                       // FIXED: Reusing the standard product card widget with correct 'item' parameter
                       return ProductCard(item: product);
                     },

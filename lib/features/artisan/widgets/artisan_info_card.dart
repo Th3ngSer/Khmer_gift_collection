@@ -34,7 +34,6 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Avatar, Details, and Favorite Button
           Row(
             children: [
               Container(
@@ -42,9 +41,12 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
                   shape: BoxShape.circle,
                   border: Border.all(color: goldColor, width: 2),
                 ),
-                child: CircleAvatar(
-                  radius: 32,
-                  backgroundImage: NetworkImage(a['avatar']),
+                child: Hero(
+                  tag: 'artisan-avatar-${a['id']}',
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundImage: NetworkImage(a['avatar']),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -52,13 +54,31 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      (a['region'] ?? '').toString().toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        letterSpacing: 2.0,
-                        color: goldColor,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          (a['region'] ?? '').toString().toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            letterSpacing: 2.0,
+                            color: goldColor,
+                            fontWeight:
+                                FontWeight.bold, 
+                          ),
+                        ),
+                        if (a['latitude'] != null &&
+                            a['longitude'] != null) ...[
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => context.go('/map', extra: {
+                              'lat': a['latitude'],
+                              'lng': a['longitude'],
+                            }),
+                            child: const Icon(Icons.location_pin,
+                                size: 12, color: goldColor),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -81,6 +101,18 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
                   ],
                 ),
               ),
+
+              // NEW: Direct Chat Room Routing CTA Button
+              IconButton(
+                onPressed: () => context.push('/chat/${a['id']}', extra: a),
+                icon: const Icon(Icons.chat_bubble_outline, color: goldColor),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.dividerColor.withOpacity(0.1),
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(width: 8),
+
               IconButton(
                 onPressed: () {
                   ref
@@ -119,7 +151,6 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
             ],
           ),
 
-          // Row 2: Metrics
           const SizedBox(height: 16),
           Row(
             children: [

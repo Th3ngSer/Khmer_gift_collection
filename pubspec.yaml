@@ -11,9 +11,12 @@ environment:
 
 dependencies:
   url_launcher: ^6.3.0
+  flutter_map: ^6.0.1  # Or your current version
+  latlong2: ^0.9.0
 
   flutter:
     sdk: flutter
+  image_picker: ^1.1.2
 
   # Backend & Auth (Developer 3)
   supabase_flutter: ^2.12.4 # Double check latest version on pub.dev
@@ -33,6 +36,7 @@ dependencies:
   go_router: ^17.2.3
   video_player: ^2.8.1 # For Workshop Reels
   shimmer: ^3.0.0 # For better loading states
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

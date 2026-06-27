@@ -53,7 +53,7 @@ class _StoryViewerState extends State<StoryViewer>
       _animController.reset();
       _animController.forward();
     } else {
-      context.pop(); // Close viewer when finished
+      Navigator.of(context).pop();
     }
   }
 
@@ -147,12 +147,15 @@ class _StoryViewerState extends State<StoryViewer>
                         const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () {
-                            final String? destination = story['linkTo'];
-                            context.pop(); // Closes the story overlay modal
+                            final String? destination = story['linkTo'] ??
+                                (story['linkCollectionId'] != null
+                                    ? '/collections/${story['linkCollectionId']}'
+                                    : null);
+
+                            Navigator.of(context).pop();
+
                             if (destination != null) {
-                              context.push(
-                                destination,
-                              ); // Routes straight to the artisan profile or collection
+                              GoRouter.of(context).push(destination);
                             }
                           },
                           style: ElevatedButton.styleFrom(
@@ -219,8 +222,9 @@ class _StoryViewerState extends State<StoryViewer>
                         builder: (context, child) {
                           double progress = 0.0;
                           if (index < _currentIndex) progress = 1.0;
-                          if (index == _currentIndex)
+                          if (index == _currentIndex) {
                             progress = _animController.value;
+                          }
 
                           return LinearProgressIndicator(
                             value: progress,

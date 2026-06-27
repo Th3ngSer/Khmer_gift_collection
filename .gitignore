@@ -44,5 +44,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+assets
 khmer_gift_collection.iml
 PROJECT_SUMMARY.md
+
+.vscode/
+assets/
