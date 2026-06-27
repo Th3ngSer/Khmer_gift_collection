@@ -36,7 +36,6 @@ class _UploadProductSheetState extends ConsumerState<UploadProductSheet> {
     try {
       final supabase = Supabase.instance.client;
 
-      // 1. Insert product record details into products table
       final productRes = await supabase.from('products').insert({
         'artisan_id': widget.artisanId,
         'name': _nameController.text.trim(),
@@ -45,7 +44,6 @@ class _UploadProductSheetState extends ConsumerState<UploadProductSheet> {
         'price': double.parse(_priceController.text.trim()),
       }).select().single();
 
-      // 2. Map structural link to product_images table
       final imageUrl = _imgController.text.trim().isNotEmpty 
           ? _imgController.text.trim() 
           : 'https://images.unsplash.com/photo-1618220179428-22790b461013';
@@ -56,7 +54,6 @@ class _UploadProductSheetState extends ConsumerState<UploadProductSheet> {
         'is_primary': true,
       });
 
-      // 3. Clear data pipelines to update grid views
       ref.invalidate(artisanProfileProvider(widget.artisanId));
 
       if (mounted) {
@@ -100,7 +97,7 @@ class _UploadProductSheetState extends ConsumerState<UploadProductSheet> {
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Price ($)', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Price (\$)', border: OutlineInputBorder()),
                 validator: (v) => v == null || double.tryParse(v) == null ? 'Enter valid price' : null,
               ),
               const SizedBox(height: 12),
