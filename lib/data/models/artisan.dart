@@ -23,9 +23,9 @@ class Artisan {
       name: json['name'] ?? '',
       craft: json['craft'] ?? '',
       region: json['region'] ?? '',
-      avatar: json['avatar'] ?? '',
-      cover: json['cover'] ?? '',
-      story: json['story'],
+      avatar: json['profile_photo_url'] ?? json['avatar'] ?? '',
+      cover: json['cover_photo_url'] ?? json['cover'] ?? '',
+      story: json['heritage_story'] ?? json['story'],
     );
   }
 
