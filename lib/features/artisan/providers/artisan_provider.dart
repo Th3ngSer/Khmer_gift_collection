@@ -29,24 +29,27 @@ final artisanProfileProvider = FutureProvider.family<ArtisanProfileData, String>
   // 3. Clean and map the data
   const fallbackImage = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQX1CuF5ByhjpYZMllwvBG75hNLw58TW7Dp6Q&s';
   
-  final safeArtisan = {
-    ...artisanResponse,
-    'avatar': artisanResponse['profile_photo_url'] ?? fallbackImage,
-    'cover': artisanResponse['cover_photo_url'] ?? artisanResponse['profile_photo_url'] ?? fallbackImage, 
-    'region': artisanResponse['region'] ?? 'Cambodia',
-    'name': artisanResponse['name'] ?? 'Master Artisan',
-    'craft': 'Traditional Craft',
-    'established': '1998', 
-    'rating': 4.9,
-    'bio': 'Preserving ancient techniques through sustainable craftsmanship.',
-    'story': artisanResponse['heritage_story'] ?? '',
-  };
-
+  // Compute safeWorks FIRST so we can inject them into the artisan map
   final safeWorks = worksResponse.map((p) {
     final images = p['product_images'] as List<dynamic>?;
     final imageUrl = (images != null && images.isNotEmpty) ? images.first['image_url'] : fallbackImage;
     return {...p, 'cover': imageUrl};
   }).toList();
+
+  // Build the artisan map, now including the products list
+  final safeArtisan = {
+    ...artisanResponse,
+    'avatar': artisanResponse['profile_photo_url'] ?? fallbackImage,
+    'cover': artisanResponse['cover_photo_url'] ?? artisanResponse['profile_photo_url'] ?? fallbackImage,
+    'region': artisanResponse['region'] ?? 'Cambodia',
+    'name': artisanResponse['name'] ?? 'Master Artisan',
+    'craft': 'Traditional Craft',
+    'established': '1998',
+    'rating': 4.9,
+    'bio': 'Preserving ancient techniques through sustainable craftsmanship.',
+    'story': artisanResponse['heritage_story'] ?? '',
+    'products': safeWorks, // <-- THE FIX: inject the products list directly into the map
+  };
 
   return ArtisanProfileData(artisan: safeArtisan, works: safeWorks);
 });
