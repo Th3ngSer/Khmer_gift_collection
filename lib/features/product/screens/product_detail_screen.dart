@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../providers/product_detail_provider.dart';
 import '../providers/review_provider.dart';
+import '../../../features/favorites/providers/favorites_provider.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/theme_provider.dart';
@@ -27,7 +28,6 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
-  bool _isFav = false;
   late PageController _pageController;
   int _currentImageIndex = 0;
 
@@ -44,13 +44,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   void _toggleFavorite() {
-    setState(() => _isFav = !_isFav);
+    ref.read(favoritesProvider.notifier).toggleItem(widget.productId);
   }
 
   @override
   Widget build(BuildContext context) {
     final productAsync = ref.watch(productDetailProvider(widget.productId));
     final reviewsAsync = ref.watch(productReviewsProvider(widget.productId));
+    final isFav = ref.watch(favoritesProvider).items.contains(widget.productId);
     final locale = ref.watch(localeProvider).languageCode;
     const goldColor = Color(0xFFD4AF37);
 
@@ -69,7 +70,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       data: (data) {
         final item = data.product;
         final artisan = data.artisan;
-        final rating = item['rating'] ?? 5.0;
         final tags = [
           'Handmade',
           item['budget_bracket'] ?? 'Premium',
@@ -80,58 +80,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           bottomNavigationBar: ProductBottomCTA(
             item: item,
-            isFav: _isFav,
+            isFav: isFav,
             onFavPressed: _toggleFavorite,
           ),
           body: CustomScrollView(
             slivers: [
-              SliverAppBar(
-                expandedHeight: 400,
-                pinned: true,
-                stretch: true,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                leading: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black.withAlpha(128),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => context.pop(),
-                    ),
-                  ),
-                ),
-                actions: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black.withAlpha(128),
-                      child: IconButton(
-                        icon: const Icon(Icons.share, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  stretchModes: const [StretchMode.zoomBackground],
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(item['cover'] ?? '', fit: BoxFit.cover),
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.center,
-                            colors: [Colors.black54, Colors.transparent],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
               ProductHeroHeader(
                 item: item,
                 heroHeight: heroHeight,
@@ -158,26 +111,32 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               color: goldColor,
                             ),
                           ),
-                          Row(
-                            children: [
-                              const Icon(Icons.star, color: goldColor, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                rating.toStringAsFixed(1),
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              reviewsAsync.when(
-                                data: (reviews) => Text(
-                                  ' (${reviews.length} ${t('reviews')})',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
-                                    fontSize: 12,
+                          reviewsAsync.when(
+                            data: (reviews) {
+                              final double avgRating = reviews.isEmpty 
+                                  ? (item['rating'] ?? 5.0).toDouble()
+                                  : reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length;
+                              
+                              return Row(
+                                children: [
+                                  const Icon(Icons.star, color: goldColor, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    avgRating.toStringAsFixed(1),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                ),
-                                loading: () => const SizedBox(),
-                                error: (err, stack) => const SizedBox(),
-                              ),
-                            ],
+                                  Text(
+                                    ' (${reviews.length} ${t('reviews')})',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                            loading: () => const SizedBox(),
+                            error: (err, stack) => const SizedBox(),
                           ),
                         ],
                       ),
@@ -240,8 +199,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        ArtisanCard(artisan: artisan, goldColor: goldColor),
+                        const SizedBox(height: 14),
+                        ArtisanCard(
+                          artisan: artisan, 
+                          goldColor: goldColor,
+                          productContext: item,
+                        ),
                         const SizedBox(height: 32),
                       ],
 
@@ -280,10 +243,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
-  void _showWriteReviewSheet(String Function(String) t, Color textColor, Color cardBg) {
+  void _showWriteReviewSheet(String Function(String) t, Color textColor, Color cardBg, List<Review> currentReviews) {
     int selectedRating = 5;
     final TextEditingController reviewController = TextEditingController();
     bool isSubmitting = false;
+
+    final double avgRating = currentReviews.isEmpty 
+        ? 0.0 
+        : currentReviews.map((r) => r.rating).reduce((a, b) => a + b) / currentReviews.length;
 
     showModalBottomSheet(
       context: context,
@@ -313,14 +280,41 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                t('write_review'),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'serif',
-                  color: textColor,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    t('write_review'),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'serif',
+                      color: textColor,
+                    ),
+                  ),
+                  if (currentReviews.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gold.withAlpha(20),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star_rounded, color: AppTheme.gold, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            avgRating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              color: AppTheme.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
@@ -458,9 +452,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           t('reviews_title'),
           style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        TextButton(
-          onPressed: () => _showWriteReviewSheet(t, textColor, cardBg),
-          child: Text(t('write_review'), style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
+        reviewsAsync.when(
+          data: (reviews) => TextButton(
+            onPressed: () => _showWriteReviewSheet(t, textColor, cardBg, reviews),
+            child: Text(t('write_review'), style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
+          ),
+          loading: () => const SizedBox(),
+          error: (_, __) => const SizedBox(),
         ),
       ],
     );
@@ -508,13 +506,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       children: [
         Row(
           children: [
+            // User Avatar
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: AppTheme.gold.withAlpha(40), width: 1),
               ),
               child: CircleAvatar(
-                radius: 20,
+                radius: 22,
                 backgroundColor: AppTheme.gold.withAlpha(10),
                 backgroundImage: review.userAvatar != null ? NetworkImage(review.userAvatar!) : null,
                 child: review.userAvatar == null
@@ -523,14 +522,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               ),
             ),
             const SizedBox(width: 12),
+            // User Name & Verified Badge
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     review.userName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
+                  const SizedBox(height: 2),
                   if (review.isVerified)
                     Row(
                       children: [
@@ -538,53 +539,64 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         const SizedBox(width: 4),
                         Text(
                           t('verified_purchase'),
-                          style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                 ],
               ),
             ),
+            // Rating Stars & Date
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < review.rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                      size: 16,
+                      color: AppTheme.gold,
+                    );
+                  }),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            // Delete button if applicable
             if (canDelete)
-              IconButton(
-                icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(150), size: 20),
-                onPressed: () => _showDeleteConfirmation(review),
-              )
-            else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    children: List.generate(5, (index) {
-                      return Icon(
-                        index < review.rating ? Icons.star : Icons.star_border,
-                        size: 14,
-                        color: AppTheme.gold,
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withAlpha(100), fontSize: 11),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: IconButton(
+                  icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(150), size: 20),
+                  onPressed: () => _showDeleteConfirmation(review),
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                ),
               ),
           ],
         ),
         const SizedBox(height: 12),
+        // Review Text Bubble
         Container(
           padding: const EdgeInsets.all(16),
           width: double.infinity,
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.only(
-              topRight: Radius.circular(20),
-              bottomLeft: Radius.circular(20),
-              bottomRight: Radius.circular(20),
-            ),
+            borderRadius: const BorderRadius.all(Radius.circular(20)),
             boxShadow: [
-              BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10, offset: const Offset(0, 4)),
+              BoxShadow(
+                color: Colors.black.withAlpha(5),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
             ],
           ),
           child: Column(

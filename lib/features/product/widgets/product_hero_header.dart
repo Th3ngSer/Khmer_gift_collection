@@ -29,7 +29,7 @@ class ProductHeroHeader extends StatelessWidget {
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
-          backgroundColor: Colors.black.withOpacity(0.5),
+          backgroundColor: Colors.black.withAlpha(128),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.pop(),
@@ -40,7 +40,7 @@ class ProductHeroHeader extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: CircleAvatar(
-            backgroundColor: Colors.black.withOpacity(0.5),
+            backgroundColor: Colors.black.withAlpha(128),
             child: IconButton(
               icon: const Icon(Icons.share, color: Colors.white),
               onPressed: () {},
@@ -99,7 +99,7 @@ class ProductHeroHeader extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: currentImageIndex == index
                           ? Colors.white
-                          : Colors.white.withOpacity(0.5),
+                          : Colors.white.withAlpha(128),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
