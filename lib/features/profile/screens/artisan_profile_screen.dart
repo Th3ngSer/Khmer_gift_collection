@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/khmer_divider.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../artisan/providers/artisan_provider.dart';
@@ -6,6 +8,7 @@ import '../../artisan/widgets/edit_artisan_sheet.dart';
 import '../../artisan/widgets/upload_product_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../chat_reviews/providers/chat_provider.dart';
 
 class ArtisanProfileScreen extends ConsumerWidget {
   final Map<String, dynamic> artisanData;
@@ -38,6 +41,29 @@ class ArtisanProfileScreen extends ConsumerWidget {
             ),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: CircleAvatar(
+              backgroundColor: Colors.black.withOpacity(0.3),
+              child: IconButton(
+                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                onPressed: () {
+                  final roomId = 'room_${artisanData['name']}';
+                  ref.read(chatProvider.notifier).initiateChat(
+                    roomId, 
+                    artisanData['name'] ?? 'Artisan', 
+                    artisanData['avatar'] ?? artisanData['cover'] ?? 'https://i.pravatar.cc/150'
+                  );
+                  context.push('/chat-room/$roomId', extra: {
+                    'currentUserId': 'user_123',
+                    'artisanName': artisanData['name'] ?? 'Artisan',
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

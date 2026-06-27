@@ -121,8 +121,9 @@ final goRouter = GoRouter(
 
         return ChatRoomScreen(
           roomId: roomId,
-          currentUserId: currentUserId,
-          artisanName: artisanName,
+          currentUserId: extras['currentUserId'] as String,
+          artisanName: extras['artisanName'] as String,
+          productContext: extras['productContext'] as Map<String, dynamic>?,
         );
       },
     ),

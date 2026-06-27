@@ -1,33 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../chat_reviews/providers/chat_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
-class ArtisanCard extends StatelessWidget {
+class ArtisanCard extends ConsumerWidget {
   final Map<String, dynamic> artisan;
   final Color goldColor;
+  final Map<String, dynamic>? productContext;
 
   const ArtisanCard({
     super.key,
     required this.artisan,
     required this.goldColor,
+    this.productContext,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push(
-        '/artisans/${artisan['id']}',
-        extra: artisan,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Theme.of(context).dividerColor,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onTap: () => context.push(
+          '/artisans/${artisan['id']}',
+          extra: artisan,
         ),
-        child: Row(
+        leading: CircleAvatar(
+          radius: 28,
+          backgroundColor: AppTheme.gold.withAlpha(20),
+          backgroundImage: NetworkImage(artisan['avatar'] ?? artisan['cover'] ?? 'https://i.pravatar.cc/150'),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Hero(
               tag: 'artisan-avatar-${artisan['id']}',
@@ -70,7 +87,8 @@ class ArtisanCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 28),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, color: Colors.black12),
           ],
         ),
       ),

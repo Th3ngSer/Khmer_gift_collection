@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/chat_provider.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/constants/translations.dart';
 import '../../../core/theme/app_theme.dart';
 
-// Modern Notifier for search
 class ChatSearchNotifier extends Notifier<String> {
   @override
   String build() => '';
-
   void setSearch(String query) => state = query;
   void clear() => state = '';
 }
 
-final chatSearchProvider = NotifierProvider<ChatSearchNotifier, String>(() {
-  return ChatSearchNotifier();
-});
+final chatSearchProvider = NotifierProvider<ChatSearchNotifier, String>(() => ChatSearchNotifier());
 
 class ChatListScreen extends ConsumerWidget {
   const ChatListScreen({super.key});
@@ -27,182 +24,81 @@ class ChatListScreen extends ConsumerWidget {
     final isDark = ref.watch(themeProvider) == ThemeMode.dark;
     final locale = ref.watch(localeProvider).languageCode;
     final searchQuery = ref.watch(chatSearchProvider);
+    final allRooms = ref.watch(allChatRoomsProvider);
     
     String t(String key) => Translations.translate(key, locale);
 
     final textColor = isDark ? Colors.white : AppTheme.deepEarth;
-    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
     final cardBg = Theme.of(context).cardColor;
 
-    // Mock data for UI demonstration
-    final allChats = [
-      {
-        'name': 'Sophea Silk',
-        'lastMessage': 'How is the progress on my silk scarf?',
-        'time': '10 min ago',
-        'isNew': true,
-        'image': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQX1CuF5ByhjpYZMllwvBG75hNLw58TW7Dp6Q&s',
-      },
-      {
-        'name': 'Kiri Woodwork',
-        'lastMessage': 'Yes, I can customize the wood grain for you.',
-        'time': '25 min ago',
-        'isNew': false,
-        'image': 'https://pethero.co.za/wp-content/uploads/2026/02/Indoor-Cats-Blog-Banner.png',
-      },
-      {
-        'name': 'Arun Sculpture',
-        'lastMessage': 'The stone carving will be ready next week!',
-        'time': '1 hour ago',
-        'isNew': false,
-        'image': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiugxgmLGqUu6bXJiwgMidRtxyKN9zG_ujGg&s',
-      },
-    ];
-
-    // Filter chats based on search query
-    final filteredChats = allChats.where((chat) {
-      final name = chat['name'].toString().toLowerCase();
-      final message = chat['lastMessage'].toString().toLowerCase();
+    final filteredChats = allRooms.where((room) {
+      final name = room.name.toLowerCase();
       final query = searchQuery.toLowerCase();
-      return name.contains(query) || message.contains(query);
+      return name.contains(query);
     }).toList();
 
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           t('messages'),
-          style: TextStyle(
-            color: textColor,
-            fontFamily: 'serif',
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
+          style: TextStyle(color: textColor, fontFamily: 'serif', fontWeight: FontWeight.bold, fontSize: 24),
         ),
       ),
       body: Column(
         children: [
-          // Functional Search Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
-              onChanged: (value) {
-                ref.read(chatSearchProvider.notifier).setSearch(value);
-              },
+              onChanged: (value) => ref.read(chatSearchProvider.notifier).setSearch(value),
               style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 hintText: t('search_messages'),
                 hintStyle: TextStyle(color: textColor.withAlpha(80), fontSize: 14),
                 prefixIcon: Icon(Icons.search, color: textColor.withAlpha(80), size: 20),
-                suffixIcon: searchQuery.isNotEmpty 
-                  ? IconButton(
-                      icon: Icon(Icons.clear, color: textColor.withAlpha(80), size: 20),
-                      onPressed: () {
-                        ref.read(chatSearchProvider.notifier).clear();
-                      },
-                    )
-                  : null,
                 filled: true,
                 fillColor: cardBg,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               ),
             ),
           ),
-          
           Expanded(
-            child: filteredChats.isEmpty 
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        searchQuery.isEmpty ? Icons.chat_bubble_outline : Icons.search_off, 
-                        size: 64, 
-                        color: textColor.withAlpha(30)
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        searchQuery.isEmpty ? t('no_messages') : 'No results found for "$searchQuery"', 
-                        style: TextStyle(color: textColor.withAlpha(100))
-                      ),
-                    ],
+            child: filteredChats.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(searchQuery.isEmpty ? Icons.chat_bubble_outline : Icons.search_off, size: 64, color: textColor.withAlpha(30)),
+                        const SizedBox(height: 16),
+                        Text(searchQuery.isEmpty ? t('no_messages') : 'No results found', style: TextStyle(color: textColor.withAlpha(100))),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: filteredChats.length,
+                    itemBuilder: (context, index) {
+                      final room = filteredChats[index];
+                      final lastMsg = ref.watch(lastMessageProvider(room.id));
+                      
+                      return _buildChatItem(context, room, lastMsg, textColor, cardBg);
+                    },
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: filteredChats.length,
-                  itemBuilder: (context, index) {
-                    final chat = filteredChats[index];
-                    return _buildChatItem(context, chat, isDark, textColor, cardBg);
-                  },
-                ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildChatItem(
-    BuildContext context, 
-    Map<String, dynamic> chat, 
-    bool isDark, 
-    Color textColor,
-    Color cardBg,
-  ) {
+  Widget _buildChatItem(BuildContext context, ChatRoomInfo room, ChatMessage? lastMsg, Color textColor, Color cardBg) {
     return InkWell(
-      onTap: () {
-        context.push(
-          '/chat-room/room_${chat['name']}',
-          extra: {
-            'currentUserId': 'user_123',
-            'artisanName': chat['name'],
-          },
-        );
-      },
+      onTap: () => context.push('/chat-room/${room.id}', extra: {'currentUserId': 'user_123', 'artisanName': room.name}),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            // Avatar
-            Stack(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: chat['isNew'] == true ? AppTheme.gold : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: AppTheme.gold.withAlpha(20),
-                    backgroundImage: NetworkImage(chat['image']!),
-                  ),
-                ),
-                if (chat['isNew'] == true)
-                  Positioned(
-                    right: 2,
-                    top: 2,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: AppTheme.gold,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cardBg, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            CircleAvatar(radius: 28, backgroundColor: AppTheme.gold.withAlpha(20), backgroundImage: NetworkImage(room.avatar)),
             const SizedBox(width: 16),
-            // Message Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,33 +106,29 @@ class ChatListScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        chat['name']!,
-                        style: TextStyle(
-                          color: textColor,
-                          fontWeight: chat['isNew'] == true ? FontWeight.bold : FontWeight.w600,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Text(room.name, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
+                          if (room.badge.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: AppTheme.gold.withAlpha(30), borderRadius: BorderRadius.circular(4)),
+                              child: Text(room.badge, style: const TextStyle(color: AppTheme.gold, fontSize: 8, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ],
                       ),
-                      Text(
-                        chat['time']!,
-                        style: TextStyle(
-                          color: textColor.withAlpha(80),
-                          fontSize: 12,
-                        ),
-                      ),
+                      if (lastMsg != null)
+                        Text('${lastMsg.sentAt.hour}:${lastMsg.sentAt.minute.toString().padLeft(2, '0')}', style: TextStyle(color: textColor.withAlpha(80), fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    chat['lastMessage']!,
+                    lastMsg?.messageText ?? 'No messages yet',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: chat['isNew'] == true ? textColor : textColor.withAlpha(120),
-                      fontSize: 14,
-                      fontWeight: chat['isNew'] == true ? FontWeight.w500 : FontWeight.normal,
-                    ),
+                    style: TextStyle(color: textColor.withAlpha(120), fontSize: 14),
                   ),
                 ],
               ),

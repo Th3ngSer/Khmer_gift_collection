@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/providers/notification_provider.dart';
+import '../../../features/favorites/providers/favorites_provider.dart';
 import '../../../core/constants/translations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../artisan/providers/artisan_provider.dart';
@@ -39,6 +40,8 @@ class UserProfileScreen extends ConsumerWidget {
     final hasValidCover = coverUrl != null && coverUrl.startsWith('http');
     final hasValidAvatar = avatarUrl != null && avatarUrl.startsWith('http');
 
+    final favoritesCount = ref.watch(favoritesProvider).items.length;
+    
     String t(String key) => Translations.translate(key, locale);
 
     final textColor = isDark ? Colors.white : AppTheme.deepEarth;
@@ -491,7 +494,7 @@ class UserProfileScreen extends ConsumerWidget {
                     children: [
                       _buildStatItem(t('orders'), '0', isDark),
                       _buildVerticalDivider(isDark),
-                      _buildStatItem(t('saved'), '0', isDark),
+                      _buildStatItem(t('saved'), favoritesCount.toString(), isDark),
                       _buildVerticalDivider(isDark),
                       _buildStatItem(t('points'), '0', isDark, isPoints: true),
                     ],

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../shared/widgets/khmer_divider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../shared/widgets/khmer_divider.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../chat_reviews/providers/chat_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ArtisanInfoCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> artisan;
@@ -122,7 +124,27 @@ class _ArtisanInfoCardState extends ConsumerState<ArtisanInfoCard> {
                   color: isFav ? goldColor : theme.iconTheme.color,
                 ),
                 style: IconButton.styleFrom(
-                  backgroundColor: theme.dividerColor.withOpacity(0.1),
+                  backgroundColor: theme.dividerColor.withAlpha(25),
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  final roomId = 'room_${a['name']}';
+                  ref.read(chatProvider.notifier).initiateChat(
+                    roomId, 
+                    a['name'] ?? 'Artisan', 
+                    a['avatar'] ?? a['cover'] ?? 'https://i.pravatar.cc/150'
+                  );
+                  context.push('/chat-room/$roomId', extra: {
+                    'currentUserId': 'user_123',
+                    'artisanName': a['name'] ?? 'Artisan',
+                  });
+                },
+                icon: const Icon(Icons.chat_bubble_outline, color: AppTheme.gold),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.dividerColor.withAlpha(25),
                   padding: const EdgeInsets.all(12),
                 ),
               ),
