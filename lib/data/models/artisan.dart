@@ -6,6 +6,8 @@ class Artisan {
   final String avatar;
   final String cover;
   final String? story;
+  final double? latitude;
+  final double? longitude;
 
   Artisan({
     required this.id,
@@ -15,6 +17,8 @@ class Artisan {
     required this.avatar,
     required this.cover,
     this.story,
+    this.latitude,
+    this.longitude,
   });
 
   factory Artisan.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,8 @@ class Artisan {
       avatar: json['profile_photo_url'] ?? json['avatar'] ?? '',
       cover: json['cover_photo_url'] ?? json['cover'] ?? '',
       story: json['heritage_story'] ?? json['story'],
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -38,6 +44,8 @@ class Artisan {
       'avatar': avatar,
       'cover': cover,
       'story': story,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }
