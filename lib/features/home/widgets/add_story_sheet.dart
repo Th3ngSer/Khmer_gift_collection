@@ -149,14 +149,14 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
       final String storagePath =
           '${user.id}/story_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
 
-      await supabase.storage.from('stories').uploadBinary(
+      await supabase.storage.from('artisan-assets').uploadBinary(
             storagePath,
             fileBytes,
             fileOptions: FileOptions(contentType: 'image/$fileExtension'),
           );
 
       final String publicUrl =
-          supabase.storage.from('stories').getPublicUrl(storagePath);
+          supabase.storage.from('artisan-assets').getPublicUrl(storagePath);
 
       await supabase.from('artisans').update({
         'latest_story_url': publicUrl,
