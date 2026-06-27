@@ -11,7 +11,6 @@ import '../../artisan/providers/artisan_provider.dart';
 import '../../artisan/widgets/edit_artisan_sheet.dart';
 import '../../artisan/widgets/upload_product_sheet.dart';
 
-
 class UserProfileScreen extends ConsumerWidget {
   const UserProfileScreen({super.key});
 
@@ -406,19 +405,31 @@ class UserProfileScreen extends ConsumerWidget {
             ),
           ),
 
-          // 2. User Info & Stats Card
           SliverToBoxAdapter(
             child: Column(
               children: [
                 const SizedBox(height: 12),
-                Text(
-                  user?.userMetadata?['full_name'] ?? 'Khmer Guest',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'serif',
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      user?.userMetadata?['full_name'] ?? 'Khmer Guest',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'serif',
+                      ),
+                    ),
+                    if (user != null &&
+                        (user.userMetadata?['role'] == 'artisan' ||
+                            user.email == 'louchumdararith02@gmail.com'))
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.verified,
+                            color: AppTheme.gold, size: 24),
+                      ),
+                  ],
                 ),
                 Text(
                   user?.email ?? 'Join the collection',
@@ -463,79 +474,111 @@ class UserProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              final liveData = ref
-                                  .read(artisanProfileProvider(user.id))
-                                  .value;
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(24)),
-                                ),
-                                builder: (context) => EditArtisanSheet(
-                                  artisan: liveData?.artisan ??
-                                      {
-                                        'id': user.id,
-                                        'name': user.userMetadata?['full_name'],
-                                        'shop_name':
-                                            user.userMetadata?['shop_name'] ??
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  final liveData = ref
+                                      .read(artisanProfileProvider(user.id))
+                                      .value;
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(24)),
+                                    ),
+                                    builder: (context) => EditArtisanSheet(
+                                      artisan: liveData?.artisan ??
+                                          {
+                                            'id': user.id,
+                                            'name':
                                                 user.userMetadata?['full_name'],
-                                      },
+                                            'shop_name': user.userMetadata?[
+                                                    'shop_name'] ??
+                                                user.userMetadata?['full_name'],
+                                          },
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.edit_note,
+                                    size: 18, color: AppTheme.gold),
+                                label: const Text(
+                                  'Edit Story',
+                                  style: TextStyle(
+                                      color: AppTheme.gold,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
                                 ),
-                              );
-                            },
-                            icon: const Icon(Icons.edit_note,
-                                size: 18, color: AppTheme.gold),
-                            label: const Text(
-                              'Edit Story',
-                              style: TextStyle(
-                                  color: AppTheme.gold,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  side: const BorderSide(color: AppTheme.gold),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
                             ),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: AppTheme.gold),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(24)),
+                                    ),
+                                    builder: (context) =>
+                                        UploadProductSheet(artisanId: user.id),
+                                  );
+                                },
+                                icon: const Icon(Icons.library_add,
+                                    size: 18, color: AppTheme.gold),
+                                label: const Text(
+                                  'Add Item',
+                                  style: TextStyle(
+                                      color: AppTheme.gold,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  side: const BorderSide(color: AppTheme.gold),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
+                        const SizedBox(height: 10),
+                        // New Button to view the actual Artisan Dashboard
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
                             onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(24)),
-                                ),
-                                builder: (context) =>
-                                    UploadProductSheet(artisanId: user.id),
-                              );
+                              // Assuming you have a route set up in app_router.dart for the owner's dashboard
+                              // You may need to adjust this path to match your router file.
+                              context.push('/my_artisan_profile');
                             },
-                            icon: const Icon(Icons.library_add,
-                                size: 18, color: AppTheme.gold),
+                            icon: const Icon(Icons.storefront),
                             label: const Text(
-                              'Add Item',
-                              style: TextStyle(
-                                  color: AppTheme.gold,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13),
+                              'View My Shop Dashboard',
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            style: OutlinedButton.styleFrom(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.gold,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: AppTheme.gold),
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),

@@ -155,11 +155,12 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
             fileOptions: FileOptions(contentType: 'image/$fileExtension'),
           );
 
-      final String publicUrl =
-          supabase.storage.from('artisan-assets').getPublicUrl(storagePath);
+      final String signedUrl = await supabase.storage
+          .from('artisan-assets')
+          .createSignedUrl(storagePath, 21600);
 
       await supabase.from('artisans').update({
-        'latest_story_url': publicUrl,
+        'latest_story_url': signedUrl,
         'story_caption': _captionController.text.trim(),
         'story_created_at': DateTime.now().toIso8601String(),
       }).eq('id', user.id);
