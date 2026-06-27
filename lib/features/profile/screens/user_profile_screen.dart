@@ -360,7 +360,7 @@ class UserProfileScreen extends ConsumerWidget {
         slivers: [
           // 1. "Airy" Header with Floating Avatar
           SliverAppBar(
-            expandedHeight: 180,
+            expandedHeight: 260,
             pinned: true,
             backgroundColor: scaffoldBg,
             elevation: 0,
@@ -369,7 +369,7 @@ class UserProfileScreen extends ConsumerWidget {
                 children: [
                   // Top Decorative Banner (Gradient or Artisan Cover Photo)
                   Container(
-                    height: 110,
+                    height: 190,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       gradient: hasValidCover
