@@ -14,11 +14,14 @@ class ArtisanProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Warm Earth Tones & Gold Highlights
     const goldColor = Color(0xFFD4AF37);
     final artisanId =
         (artisanData['id'] ?? Supabase.instance.client.auth.currentUser?.id)
             .toString();
+
+    final liveProfileState = ref.watch(artisanProfileProvider(artisanId));
+
+    final activeData = liveProfileState.value?.artisan ?? artisanData;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -48,7 +51,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage(artisanData['photo_url'] ??
+                      image: NetworkImage(activeData['photo_url'] ??
                           artisanData['cover_photo_url'] ??
                           artisanData['cover'] ??
                           artisanData['avatar'] ??
@@ -80,8 +83,8 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        artisanData['shop_name'] ??
-                            artisanData['name'] ??
+                        activeData['shop_name'] ??
+                            activeData['name'] ??
                             'Master Craftsman',
                         style: const TextStyle(
                           color: Colors.white,
@@ -92,8 +95,8 @@ class ArtisanProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        artisanData['craft_type'] ??
-                            artisanData['craft'] ??
+                        activeData['craft_type'] ??
+                            activeData['craft'] ??
                             'Handmade Crafts',
                         style: const TextStyle(
                           color: goldColor,
@@ -131,7 +134,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
                                 size: 14, color: goldColor),
                             const SizedBox(width: 4),
                             Text(
-                              artisanData['region'] ?? 'Cambodia',
+                              activeData['region'] ?? 'Cambodia',
                               style: const TextStyle(
                                   color: goldColor,
                                   fontWeight: FontWeight.bold,
@@ -159,7 +162,8 @@ class ArtisanProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    artisanData['story'] ?? artisanData['heritage_story'] ??
+                    activeData['story'] ??
+                        activeData['heritage_story'] ??
                         'Dedicated to preserving traditional Khmer techniques and supporting local communities through sustainable craftsmanship.',
                     style: TextStyle(
                       fontSize: 15,
@@ -186,7 +190,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        "${(artisanData['products'] as List? ?? []).length} items",
+                        "${(activeData['products'] as List? ?? []).length} items",
                         style: TextStyle(
                             color: Colors.black.withOpacity(0.4), fontSize: 13),
                       ),
@@ -207,7 +211,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
                                     top: Radius.circular(24)),
                               ),
                               builder: (context) =>
-                                  EditArtisanSheet(artisan: artisanData),
+                                  EditArtisanSheet(artisan: activeData),
                             );
                           },
                           icon: const Icon(Icons.edit_note,
@@ -279,9 +283,9 @@ class ArtisanProfileScreen extends ConsumerWidget {
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 24,
                     ),
-                    itemCount: (artisanData['products'] as List? ?? []).length,
+                    itemCount: (activeData['products'] as List? ?? []).length,
                     itemBuilder: (context, index) {
-                      final product = artisanData['products'][index];
+                      final product = activeData['products'][index];
                       // FIXED: Reusing the standard product card widget with correct 'item' parameter
                       return ProductCard(item: product);
                     },
