@@ -26,8 +26,7 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24
-      ),
+          24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,13 +40,13 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Image Picker Card Trigger
           InkWell(
             onTap: () async {
               final picker = ImagePicker();
               final file = await picker.pickImage(
-                source: ImageSource.gallery, 
+                source: ImageSource.gallery,
                 imageQuality: 70,
               );
               if (file != null) {
@@ -67,7 +66,8 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
                   ? const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.cloud_upload_outlined, size: 32, color: Color(0xFF8C2D19)),
+                        Icon(Icons.cloud_upload_outlined,
+                            size: 32, color: Color(0xFF8C2D19)),
                         SizedBox(height: 8),
                         Text(
                           'Tap to Select Photo from Gallery',
@@ -82,14 +82,15 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
                         SizedBox(width: 8),
                         Text(
                           'Image Selected Successfully!',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.green),
                         ),
                       ],
                     ),
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Caption Inputs
           TextField(
             controller: _captionController,
@@ -97,11 +98,12 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
             decoration: InputDecoration(
               labelText: 'Story Caption / Legend',
               hintText: 'Describe what you are working on today...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Submission Button
           SizedBox(
             width: double.infinity,
@@ -114,7 +116,8 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
               onPressed: _isPosting ? null : _handlePublish,
               child: _isPosting
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Publish Story', style: TextStyle(fontWeight: FontWeight.bold)),
+                  : const Text('Publish Story',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -127,33 +130,50 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
     setState(() => _isPosting = true);
 
     final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      try {
-        final supabase = Supabase.instance.client;
-        final fileBytes = await _pickedFile!.readAsBytes();
-        final fileExtension = _pickedFile!.name.split('.').last;
-        final String storagePath = '${user.id}/story_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
 
-        // 1. Upload to storage bucket container layout
-        await supabase.storage.from('stories').uploadBinary(
-              storagePath,
-              fileBytes,
-              fileOptions: FileOptions(contentType: 'image/$fileExtension'),
-            );
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Error: You must be logged in to post a story.')),
+        );
+        setState(() => _isPosting = false);
+      }
+      return;
+    }
 
-        // 2. Fetch public link URL
-        final String publicUrl = supabase.storage.from('stories').getPublicUrl(storagePath);
+    try {
+      final supabase = Supabase.instance.client;
+      final fileBytes = await _pickedFile!.readAsBytes();
+      final fileExtension = _pickedFile!.name.split('.').last;
+      final String storagePath =
+          '${user.id}/story_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
 
-        // 3. Update database table data records
-        await supabase.from('artisans').update({
-          'latest_story_url': publicUrl,
-          'story_caption': _captionController.text.trim(),
-          'story_created_at': DateTime.now().toIso8601String(),
-        }).eq('id', user.id);
+      await supabase.storage.from('stories').uploadBinary(
+            storagePath,
+            fileBytes,
+            fileOptions: FileOptions(contentType: 'image/$fileExtension'),
+          );
 
-        ref.invalidate(homeFeedProvider);
-        if (mounted) Navigator.pop(context);
-      } catch (e) {
+      final String publicUrl =
+          supabase.storage.from('stories').getPublicUrl(storagePath);
+
+      await supabase.from('artisans').update({
+        'latest_story_url': publicUrl,
+        'story_caption': _captionController.text.trim(),
+        'story_created_at': DateTime.now().toIso8601String(),
+      }).eq('id', user.id);
+
+      ref.invalidate(homeFeedProvider);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
         setState(() => _isPosting = false);
       }
     }
