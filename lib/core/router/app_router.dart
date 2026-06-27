@@ -21,6 +21,8 @@ import '../../features/profile/screens/promotions_screen.dart';
 import '../../features/home/screens/workshop_reel_screen.dart';
 import '../../features/order/screens/cart_screen.dart';
 import '../../features/order/screens/checkout_screen.dart';
+import '../../features/profile/screens/artisan_profile_screen.dart'
+    as private_shop;
 
 class SupabaseAuthRefreshListenable extends ChangeNotifier {
   late final StreamSubscription<AuthState> _subscription;
@@ -135,6 +137,13 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/favorites',
       builder: (context, state) => const FavoritesScreen(),
+    ),
+    GoRoute(
+      path: '/my_artisan_profile',
+      builder: (context, state) {
+        final artisanData = state.extra as Map<String, dynamic>? ?? {};
+        return private_shop.ArtisanProfileScreen(artisanData: artisanData);
+      },
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {

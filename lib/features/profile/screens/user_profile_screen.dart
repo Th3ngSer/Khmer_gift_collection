@@ -563,9 +563,24 @@ class UserProfileScreen extends ConsumerWidget {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () {
-                              // Assuming you have a route set up in app_router.dart for the owner's dashboard
-                              // You may need to adjust this path to match your router file.
-                              context.push('/my_artisan_profile');
+                              // 1. Grab the latest artisan data from the provider
+                              final liveData = ref
+                                  .read(artisanProfileProvider(user.id))
+                                  .value;
+
+                              // 2. Fallback to basic user metadata if it's their first time loading
+                              final artisanData = liveData?.artisan ??
+                                  {
+                                    'id': user.id,
+                                    'name': user.userMetadata?['full_name'],
+                                    'shop_name':
+                                        user.userMetadata?['shop_name'] ??
+                                            user.userMetadata?['full_name'],
+                                  };
+
+                              // 3. Push the route and pass the data securely via 'extra'
+                              context.push('/my_artisan_profile',
+                                  extra: artisanData);
                             },
                             icon: const Icon(Icons.storefront),
                             label: const Text(
