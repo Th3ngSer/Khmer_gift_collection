@@ -20,6 +20,24 @@ class UserProfileScreen extends ConsumerWidget {
     final isDark = themeMode == ThemeMode.dark;
     final locale = ref.watch(localeProvider).languageCode;
     final user = Supabase.instance.client.auth.currentUser;
+    final isArtisanRole = user != null &&
+        (user.userMetadata?['role'] == 'artisan' ||
+            user.email == 'louchumdararith02@gmail.com');
+
+    final artisanState = isArtisanRole ? ref.watch(artisanProfileProvider(user.id)) : null;
+    final liveArtisanData = artisanState?.value?.artisan;
+
+    final coverUrl =
+        liveArtisanData?['cover_photo_url'] ?? liveArtisanData?['cover'];
+    final avatarUrl = liveArtisanData?['profile_photo_url'] ??
+        liveArtisanData?['avatar'] ??
+        user?.userMetadata?['avatar_url'];
+    final displayName = liveArtisanData?['name'] ??
+        user?.userMetadata?['full_name'] ??
+        'Khmer Guest';
+
+    final hasValidCover = coverUrl != null && coverUrl.startsWith('http');
+    final hasValidAvatar = avatarUrl != null && avatarUrl.startsWith('http');
 
     String t(String key) => Translations.translate(key, locale);
 
@@ -349,20 +367,37 @@ class UserProfileScreen extends ConsumerWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 children: [
-                  // Top Decorative Banner
+                  // Top Decorative Banner (Gradient or Artisan Cover Photo)
                   Container(
                     height: 110,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF4A2511), Color(0xFF2A1508)],
-                      ),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(40),
-                        bottomRight: Radius.circular(40),
-                      ),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: hasValidCover
+                          ? null
+                          : const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF4A2511), Color(0xFF2A1508)],
+                            ),
+                      image: hasValidCover
+                          ? DecorationImage(
+                              image: NetworkImage(coverUrl!), fit: BoxFit.cover)
+                          : null,
+                      borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(40),
+                          bottomRight: Radius.circular(40)),
                     ),
+                    // Add a slight dark overlay if using an image so it blends well
+                    child: hasValidCover
+                        ? Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(40),
+                                  bottomRight: Radius.circular(40)),
+                            ),
+                          )
+                        : null,
                   ),
                   // Floating Avatar
                   Align(
@@ -388,11 +423,9 @@ class UserProfileScreen extends ConsumerWidget {
                         child: CircleAvatar(
                           radius: 45,
                           backgroundColor: AppTheme.gold.withAlpha(25),
-                          backgroundImage: user?.userMetadata?['avatar_url'] !=
-                                  null
-                              ? NetworkImage(user!.userMetadata!['avatar_url'])
-                              : null,
-                          child: user?.userMetadata?['avatar_url'] == null
+                          backgroundImage:
+                              hasValidAvatar ? NetworkImage(avatarUrl!) : null,
+                          child: !hasValidAvatar
                               ? const Icon(Icons.person,
                                   size: 50, color: AppTheme.gold)
                               : null,
@@ -413,7 +446,7 @@ class UserProfileScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      user?.userMetadata?['full_name'] ?? 'Khmer Guest',
+                      displayName,
                       style: TextStyle(
                         color: textColor,
                         fontSize: 24,
@@ -421,9 +454,7 @@ class UserProfileScreen extends ConsumerWidget {
                         fontFamily: 'serif',
                       ),
                     ),
-                    if (user != null &&
-                        (user.userMetadata?['role'] == 'artisan' ||
-                            user.email == 'louchumdararith02@gmail.com'))
+                    if (isArtisanRole)
                       const Padding(
                         padding: EdgeInsets.only(left: 8.0),
                         child: Icon(Icons.verified,
@@ -467,10 +498,7 @@ class UserProfileScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // >>> CONDITIONAL ARTISAN DESKTOP BUTTONS DECK <<<
-                if (user != null &&
-                    (user.userMetadata?['role'] == 'artisan' ||
-                        user.email == 'louchumdararith02@gmail.com')) ...[
+                if (isArtisanRole) ...[
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -481,27 +509,22 @@ class UserProfileScreen extends ConsumerWidget {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () {
-                                  final liveData = ref
-                                      .read(artisanProfileProvider(user.id))
-                                      .value;
+                                  final artisanData = liveArtisanData ??
+                                      {
+                                        'id': user!.id,
+                                        'name': user.userMetadata?['full_name'],
+                                        'shop_name':
+                                            user.userMetadata?['shop_name'] ??
+                                                user.userMetadata?['full_name'],
+                                      };
                                   showModalBottomSheet(
                                     context: context,
                                     isScrollControlled: true,
                                     shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(24)),
-                                    ),
-                                    builder: (context) => EditArtisanSheet(
-                                      artisan: liveData?.artisan ??
-                                          {
-                                            'id': user.id,
-                                            'name':
-                                                user.userMetadata?['full_name'],
-                                            'shop_name': user.userMetadata?[
-                                                    'shop_name'] ??
-                                                user.userMetadata?['full_name'],
-                                          },
-                                    ),
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(24))),
+                                    builder: (context) =>
+                                        EditArtisanSheet(artisan: artisanData),
                                   );
                                 },
                                 icon: const Icon(Icons.edit_note,
@@ -558,27 +581,18 @@ class UserProfileScreen extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        // New Button to view the actual Artisan Dashboard
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () {
-                              // 1. Grab the latest artisan data from the provider
-                              final liveData = ref
-                                  .read(artisanProfileProvider(user.id))
-                                  .value;
-
-                              // 2. Fallback to basic user metadata if it's their first time loading
-                              final artisanData = liveData?.artisan ??
+                              final artisanData = liveArtisanData ??
                                   {
-                                    'id': user.id,
+                                    'id': user!.id,
                                     'name': user.userMetadata?['full_name'],
                                     'shop_name':
                                         user.userMetadata?['shop_name'] ??
                                             user.userMetadata?['full_name'],
                                   };
-
-                              // 3. Push the route and pass the data securely via 'extra'
                               context.push('/my_artisan_profile',
                                   extra: artisanData);
                             },
