@@ -115,14 +115,12 @@ final goRouter = GoRouter(
       path: '/chat-room/:roomId',
       builder: (context, state) {
         final roomId = state.pathParameters['roomId']!;
-        final currentUserId = state.uri.queryParameters['currentUserId'] ?? '';
-        final artisanName =
-            state.uri.queryParameters['artisanName'] ?? 'Artisan';
-
+        final extras = state.extra as Map<String, dynamic>? ?? {};
+        
         return ChatRoomScreen(
           roomId: roomId,
-          currentUserId: extras['currentUserId'] as String,
-          artisanName: extras['artisanName'] as String,
+          currentUserId: extras['currentUserId'] as String? ?? 'user_123',
+          artisanName: extras['artisanName'] as String? ?? 'Artisan',
           productContext: extras['productContext'] as Map<String, dynamic>?,
         );
       },

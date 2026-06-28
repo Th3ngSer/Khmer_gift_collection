@@ -6,7 +6,6 @@ import '../../../shared/widgets/product_card.dart';
 import '../../artisan/providers/artisan_provider.dart';
 import '../../artisan/widgets/edit_artisan_sheet.dart';
 import '../../artisan/widgets/upload_product_sheet.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../chat_reviews/providers/chat_provider.dart';
 
