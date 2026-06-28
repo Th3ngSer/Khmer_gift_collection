@@ -118,12 +118,13 @@ final goRouter = GoRouter(
         final currentUserId = state.uri.queryParameters['currentUserId'] ?? '';
         final artisanName =
             state.uri.queryParameters['artisanName'] ?? 'Artisan';
+        final productContext = state.extra as Map<String, dynamic>?;
 
         return ChatRoomScreen(
           roomId: roomId,
-          currentUserId: extras['currentUserId'] as String,
-          artisanName: extras['artisanName'] as String,
-          productContext: extras['productContext'] as Map<String, dynamic>?,
+          currentUserId: currentUserId,
+          artisanName: artisanName,
+          productContext: productContext,
         );
       },
     ),

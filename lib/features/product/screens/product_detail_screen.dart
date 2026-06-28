@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/providers/locale_provider.dart';
+import '../../../data/models/review.dart';
 import '../providers/product_detail_provider.dart';
 import '../providers/review_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
@@ -49,8 +52,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final reviewsAsync = ref.watch(productReviewsProvider(widget.productId));
     final isFav = ref.watch(favoritesProvider).items.contains(widget.productId);
     final locale = ref.watch(localeProvider).languageCode;
-    const goldColor = Color(0xFFD4AF37);
-
     const goldColor = Color(0xFFD4AF37);
     final heroHeight = MediaQuery.of(context).size.width * (5 / 4);
 
@@ -369,324 +370,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             )
                             .toList(),
                       ),
-
-  void _showWriteReviewSheet(String Function(String) t, Color textColor, Color cardBg, List<Review> currentReviews) {
-    int selectedRating = 5;
-    final TextEditingController reviewController = TextEditingController();
-    bool isSubmitting = false;
-
-    final double avgRating = currentReviews.isEmpty 
-        ? 0.0 
-        : currentReviews.map((r) => r.rating).reduce((a, b) => a + b) / currentReviews.length;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: cardBg,
-      barrierColor: Colors.black.withAlpha(100),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => AnimatedPadding(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: textColor.withAlpha(40),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    t('write_review'),
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'serif',
-                      color: textColor,
-                    ),
-                  ),
-                  if (currentReviews.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.gold.withAlpha(20),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star_rounded, color: AppTheme.gold, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            avgRating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              color: AppTheme.gold,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'How would you rate this masterpiece?',
-                style: TextStyle(color: textColor.withAlpha(120), fontSize: 14),
-              ),
-              const SizedBox(height: 32),
-              // Interactive Animated Rating Stars
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(5, (index) {
-                    final isSelected = index < selectedRating;
-                    return TweenAnimationBuilder<double>(
-                      duration: const Duration(milliseconds: 200),
-                      tween: Tween(begin: 1.0, end: isSelected ? 1.2 : 1.0),
-                      builder: (context, scale, child) => Transform.scale(
-                        scale: scale,
-                        child: IconButton(
-                          onPressed: isSubmitting ? null : () => setSheetState(() => selectedRating = index + 1),
-                          icon: Icon(
-                            isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
-                            color: isSelected ? AppTheme.gold : textColor.withAlpha(40),
-                            size: 44,
-                          ),
-                          TextButton.icon(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(24)),
-                                ),
-                                builder: (context) => WriteReviewSheet(
-                                    productId: widget.productId),
-                              );
-                            },
-                            icon: const Icon(Icons.rate_review_outlined,
-                                size: 18, color: goldColor),
-                            label: const Text(
-                              'Write Review',
-                              style: TextStyle(
-                                  color: goldColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      ref.invalidate(productReviewsProvider(widget.productId));
-                      if (mounted) Navigator.pop(context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.gold,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: isSubmitting
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      )
-                    : const Text('Submit Review', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReviewsHeader(String Function(String) t, AsyncValue<List<Review>> reviewsAsync, Color textColor, Color cardBg) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          t('reviews_title'),
-          style: const TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        reviewsAsync.when(
-          data: (reviews) => TextButton(
-            onPressed: () => _showWriteReviewSheet(t, textColor, cardBg, reviews),
-            child: Text(t('write_review'), style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
-          ),
-          loading: () => const SizedBox(),
-          error: (_, __) => const SizedBox(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReviewsList(List<Review> reviews, String Function(String) t) {
-    if (reviews.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Text(t('no_reviews'), style: TextStyle(color: Colors.black.withAlpha(100))),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: reviews.length,
-      separatorBuilder: (context, index) => const Divider(height: 32),
-      itemBuilder: (context, index) {
-        final review = reviews[index];
-        return TweenAnimationBuilder<double>(
-          duration: Duration(milliseconds: 400 + (index * 100)),
-          tween: Tween(begin: 0.0, end: 1.0),
-          builder: (context, opacity, child) => Opacity(
-            opacity: opacity,
-            child: Transform.translate(
-              offset: Offset(0, 20 * (1 - opacity)),
-              child: child,
-            ),
-          ),
-          child: _buildReviewItem(review, t),
-        );
-      },
-    );
-  }
-
-  Widget _buildReviewItem(Review review, String Function(String) t) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final bool canDelete = review.customerId == user?.id || review.customerId.startsWith('test_user');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            // User Avatar
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.gold.withAlpha(40), width: 1),
-              ),
-              child: CircleAvatar(
-                radius: 22,
-                backgroundColor: AppTheme.gold.withAlpha(10),
-                backgroundImage: review.userAvatar != null ? NetworkImage(review.userAvatar!) : null,
-                child: review.userAvatar == null
-                    ? Text(review.userName[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold))
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 12),
-            // User Name & Verified Badge
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    review.userName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 2),
-                  if (review.isVerified)
-                    Row(
-                      children: [
-                        const Icon(Icons.verified, color: Colors.blue, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          t('verified_purchase'),
-                          style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-            // Rating Stars & Date
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(5, (index) {
-                    return Icon(
-                      index < review.rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                      size: 16,
-                      color: AppTheme.gold,
-                    );
-                  }),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            // Delete button if applicable
-            if (canDelete)
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(150), size: 20),
-                  onPressed: () => _showDeleteConfirmation(review),
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Review Text Bubble
-        Container(
-          padding: const EdgeInsets.all(16),
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.all(Radius.circular(20)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(5),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (review.photoUrl != null && review.photoUrl!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      review.photoUrl!,
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
+                      const SizedBox(height: 24),
+                      _buildReviewsSection(reviewsAsync),
+                    ],
                   ),
                 ),
               ),
@@ -695,5 +381,202 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _showWriteReviewSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => WriteReviewSheet(productId: widget.productId),
+    );
+
+    if (!mounted) return;
+
+    ref.invalidate(productReviewsProvider(widget.productId));
+    ref.invalidate(productDetailProvider(widget.productId));
+  }
+
+  Widget _buildReviewsSection(AsyncValue<List<Review>> reviewsAsync) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Reviews',
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextButton(
+              onPressed: _showWriteReviewSheet,
+              child: const Text(
+                'Write Review',
+                style: TextStyle(
+                  color: Color(0xFFD4AF37),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        reviewsAsync.when(
+          data: (reviews) {
+            if (reviews.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'No reviews yet. Be the first to share your experience.',
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.6),
+                  ),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: reviews.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _buildReviewItem(reviews[index]),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text('Could not load reviews: $error'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReviewItem(Review review) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final canDelete = review.customerId == user?.id || review.customerId.startsWith('test_user');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFFD4AF37).withOpacity(0.15),
+                child: Text(
+                  review.userName.isNotEmpty ? review.userName[0] : '?',
+                  style: const TextStyle(
+                    color: Color(0xFFD4AF37),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.userName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${review.rating}/5',
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (canDelete)
+                IconButton(
+                  onPressed: () => _showDeleteConfirmation(review),
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(review.reviewText),
+          if (review.photoUrl != null && review.photoUrl!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                review.photoUrl!,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDeleteConfirmation(Review review) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete review'),
+        content: const Text('Are you sure you want to delete this review?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await Supabase.instance.client.from('reviews').delete().match({'id': review.id});
+      if (!mounted) return;
+      ref.invalidate(productReviewsProvider(widget.productId));
+      ref.invalidate(productDetailProvider(widget.productId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review deleted.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete review: $error')),
+      );
+    }
   }
 }
