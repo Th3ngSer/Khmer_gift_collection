@@ -118,8 +118,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             icon: Consumer(
               builder: (context, ref, child) {
                 final cart = ref.watch(cartProvider);
-                final itemCount = cart.values
-                    .fold<int>(0, (sum, item) => sum + item.quantity);
+                final itemCount = cart.items.values.fold<int>(
+                  0,
+                  (sum, item) => sum + item.quantity,
+                );
 
                 if (itemCount == 0) {
                   return const Icon(Icons.shopping_cart_outlined);

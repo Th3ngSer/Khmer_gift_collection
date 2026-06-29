@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../artisan/providers/artisan_provider.dart';
 import '../../artisan/widgets/edit_artisan_sheet.dart';
 import '../../artisan/widgets/upload_product_sheet.dart';
+import '../../order/providers/order_provider.dart';
 
 class UserProfileScreen extends ConsumerWidget {
   const UserProfileScreen({super.key});
@@ -24,6 +25,13 @@ class UserProfileScreen extends ConsumerWidget {
     final isArtisanRole = user != null &&
         (user.userMetadata?['role'] == 'artisan' ||
             user.email == 'louchumdararith02@gmail.com');
+
+    final ordersAsync = ref.watch(orderHistoryProvider);
+    final activeOrderCount = ordersAsync.value
+            ?.where((o) =>
+                o.status != 'delivered' && o.status != 'cancelled')
+            .length ??
+        0;
 
     final artisanState = isArtisanRole ? ref.watch(artisanProfileProvider(user.id)) : null;
     final liveArtisanData = artisanState?.value?.artisan;
@@ -492,7 +500,11 @@ class UserProfileScreen extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatItem(t('orders'), '0', isDark),
+                      _buildStatItem(
+                        t('orders'),
+                        (ordersAsync.value?.length ?? 0).toString(),
+                        isDark,
+                      ),
                       _buildVerticalDivider(isDark),
                       _buildStatItem(t('saved'), favoritesCount.toString(), isDark),
                       _buildVerticalDivider(isDark),
@@ -636,17 +648,10 @@ class UserProfileScreen extends ConsumerWidget {
                     t('my_orders'),
                     null,
                     isDark,
-                    trailing: '0 active',
-                    onTap: () {
-                      context.go('/home');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(t('no_orders_yet')),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: AppTheme.gold,
-                        ),
-                      );
-                    },
+                    trailing: activeOrderCount > 0
+                        ? '$activeOrderCount active'
+                        : 'View all',
+                    onTap: () => context.push('/my-orders'),
                   ),
                   _buildMenuDivider(isDark),
                   _buildMenuItem(context, Icons.confirmation_number_outlined,
@@ -656,7 +661,7 @@ class UserProfileScreen extends ConsumerWidget {
                       t('my_favorites'), '/favorites', isDark),
                   _buildMenuDivider(isDark),
                   _buildMenuItem(context, Icons.location_on_outlined,
-                      t('shipping_addresses'), null, isDark),
+                      t('shipping_addresses'), '/checkout', isDark),
                 ]),
                 const SizedBox(height: 24),
                 _buildSectionTitle(t('preferences')),

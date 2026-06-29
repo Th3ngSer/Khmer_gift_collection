@@ -21,6 +21,7 @@ import '../../features/profile/screens/promotions_screen.dart';
 import '../../features/home/screens/workshop_reel_screen.dart';
 import '../../features/order/screens/cart_screen.dart';
 import '../../features/order/screens/checkout_screen.dart';
+import '../../features/order/screens/my_orders_screen.dart';
 import '../../features/profile/screens/artisan_profile_screen.dart'
     as private_shop;
 
@@ -135,6 +136,10 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/checkout',
       builder: (context, state) => const CheckoutScreen(),
+    ),
+    GoRoute(
+      path: '/my-orders',
+      builder: (context, state) => const MyOrdersScreen(),
     ),
     GoRoute(
       path: '/favorites',
